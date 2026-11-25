@@ -1,11 +1,12 @@
 # Public npm releases
 
 The release automation is implemented and its nonpublishing GitHub Actions checks
-have passed; it has not been used to publish this package. Validation does not establish npm ownership,
+have passed. Version 0.1.0 was published manually as the authorized bootstrap;
+an automated OIDC release has not yet been performed. Validation does not establish npm ownership,
 trusted publishing, provenance or public OpenCode consumption. See
 [release verification](release-verification.md) for current evidence.
 
-## Consumer setup (after publication)
+## Consumer setup
 
 In a supported OpenCode configuration, use the package name:
 
@@ -23,7 +24,7 @@ To select a particular published version:
 }
 ```
 
-The version above is an example, not a statement that 0.1.0 is published.
+Version 0.1.0 is publicly published on npm.
 OpenCode downloads/installs the public npm package internally. You do not need a
 source checkout, a manual npm install, or npm credentials to consume it. Network
 access to the registry and runtime dependencies is still necessary. Normal

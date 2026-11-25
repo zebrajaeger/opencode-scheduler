@@ -27,7 +27,7 @@ OpenCode **2.3.2 and 2.4.1** are verified with the published API contracts and a
 
 ## Installation
 
-This package is not published yet. After publication, enable it globally in
+The package is public on [npm](https://www.npmjs.com/package/@zebrajaeger/opencode-scheduler). Enable it globally in
 `~/.config/opencode/opencode.jsonc`, or for a project in `opencode.jsonc` or
 `.opencode/opencode.jsonc`:
 
@@ -38,8 +38,7 @@ This package is not published yet. After publication, enable it globally in
 ```
 
 For a specific published version, use
-`"@zebrajaeger/opencode-scheduler@0.1.0"` instead (example version; publication is
-not yet verified). OpenCode retrieves the public package and its dependencies
+`"@zebrajaeger/opencode-scheduler@0.1.0"` instead. OpenCode retrieves the public package and its dependencies
 internally: no manual clone or `npm install` is required, but this is not a
 download-free runtime. Normal configuration trust and permissions still apply.
 

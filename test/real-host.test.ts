@@ -50,7 +50,7 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
   mock.listen(0, "127.0.0.1"); await once(mock, "listening");
   const address = mock.address(); if (!address || typeof address === "string") throw new Error("No mock port");
   await writeFile(path.join(config, "opencode.json"), JSON.stringify({
-    plugins: [path.resolve(".")], model: { providerID: "scheduler-test", model: "scheduler-test" },
+    plugins: [process.env.SCHEDULER_PLUGIN_PACKAGE ?? path.resolve(".")], model: { providerID: "scheduler-test", model: "scheduler-test" },
     permissions: [{ action: "shell", resource: "*", effect: "allow" }],
     providers: { "scheduler-test": { package: "@opencode/ai/providers/openai-compatible", env: [],
       settings: { baseURL: `http://127.0.0.1:${address.port}/v1`, apiKey: "local-fixture-only" },

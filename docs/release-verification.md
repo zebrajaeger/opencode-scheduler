@@ -88,3 +88,20 @@ Actions run above, not just local syntax/structure checks.
 4. Approve a new matching stable master version tag; this publishes publicly.
 5. Record public registry version/access/integrity/provenance and clean supported
    OpenCode package-name consumption. Do not infer these from local packaging.
+
+## Public bootstrap release
+
+The user completed the authorized interactive publication of 0.1.0. Public npm
+version metadata now returns HTTP 200, license MIT, and dist.integrity exactly
+matches the prepublication validated archive:
+`sha512-A0tXxhGxk0pEX6oQWQhcQx/DR4XmTGiEtwMhCmttqVNtVvieTGVoVvxpOHmXzcQZy8KxX03Ys5jqFNcQAaweYA==`.
+This manual bootstrap has no provenance attestation and is not counted as the
+planned automated OIDC release. Task 4.4 therefore remains open until Trusted
+Publishing is configured and a new stable version is published through Actions.
+
+The real-host harness accepts `SCHEDULER_PLUGIN_PACKAGE` as an opt-in override.
+This permits testing the actual public version by package name with its existing
+fresh private home/config/cache and loopback deterministic model, rather than a
+local plugin checkout. The child environment does not inherit npm tokens or the
+user's npm config. Public package consumption verification is recorded separately
+after the isolated run completes.
