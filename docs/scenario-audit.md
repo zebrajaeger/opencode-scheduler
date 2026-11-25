@@ -1,7 +1,8 @@
 # Initial scheduler scenario audit
 
 Audited on 2026-11-25 against the three delta specs in
-`openspec/changes/initial-scheduler/specs/`. Test names below refer to `test/`.
+`openspec/changes/archive/2026-11-25-initial-scheduler/specs/` (the change is now archived).
+The synchronized contracts live in `openspec/specs/`. Test names below refer to `test/`.
 Automated host evidence is not a substitute for client-specific smoke evidence;
 see `smoke-test.md` for the completed, per-client recorded checks.
 
