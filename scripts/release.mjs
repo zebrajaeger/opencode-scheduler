@@ -141,6 +141,22 @@ export function verifyRegistryMetadata(data, metadata) {
   assert(data.license === 'MIT', 'Registry license mismatch');
 }
 
+export async function publishedMetadata(version, request = fetch,
+  wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)), attempts = 12) {
+  assert(stable.test(version), 'Invalid registry version');
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const response = await request(`${registry}/${encodeURIComponent(packageName)}/${version}?verify=${Date.now()}`, {
+      signal: AbortSignal.timeout(30_000), headers: { 'cache-control': 'no-cache' },
+    });
+    if (response.ok) return response.json();
+    const transient = response.status === 404 || response.status === 429 || response.status >= 500;
+    assert(transient && attempt + 1 < attempts,
+      `Postpublication registry check failed (${response.status}); inspect exact version before any retry`);
+    await wait(10_000);
+  }
+  throw new Error('Postpublication verification exhausted');
+}
+
 export async function main(command) {
   const out = resolve('.release-artifacts');
   const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
@@ -164,9 +180,7 @@ export async function main(command) {
     assert(checkArchive(join(out, 'package.tgz'), version, false).integrity === metadata.integrity, 'Artifact handoff integrity mismatch');
     if (command === 'preflight') await versionAvailable(version);
     else {
-      const response = await fetch(`${registry}/${encodeURIComponent(packageName)}/${version}`, { signal: AbortSignal.timeout(30_000) });
-      assert(response.ok, `Postpublication registry check failed (${response.status}); inspect exact version before any retry`);
-      const data = await response.json();
+      const data = await publishedMetadata(version);
       verifyRegistryMetadata(data, metadata);
       const tarball = new URL(data.dist.tarball);
       assert(tarball.origin === registry, 'Unexpected registry tarball origin');

@@ -2,7 +2,9 @@
 
 The release automation is implemented and its nonpublishing GitHub Actions checks
 have passed. Version 0.1.0 was published manually as the authorized bootstrap;
-an automated OIDC release has not yet been performed. Validation does not establish npm ownership,
+version 0.1.1 was then published by the tag-triggered OIDC workflow with provenance.
+See the verification record for the initial registry propagation failure and
+independently successful follow-up check. Validation alone does not establish npm ownership,
 trusted publishing, provenance or public OpenCode consumption. See
 [release verification](release-verification.md) for current evidence.
 
@@ -24,7 +26,7 @@ To select a particular published version:
 }
 ```
 
-Version 0.1.0 is publicly published on npm.
+Versions 0.1.0 and 0.1.1 are publicly published on npm; 0.1.1 has OIDC provenance.
 OpenCode downloads/installs the public npm package internally. You do not need a
 source checkout, a manual npm install, or npm credentials to consume it. Network
 access to the registry and runtime dependencies is still necessary. Normal
@@ -113,6 +115,9 @@ unverified until an authorized live run succeeds.
 - Authentication error: verify npm ownership and the exact trusted-publisher
   workflow identity/expiry. No long-lived-token fallback exists.
 - Network/preflight errors other than exact HTTP 404: publication is blocked.
+- After publication, temporary metadata propagation responses (404/429/5xx)
+  are checked at most twelve times with ten-second pauses. This only retries
+  reads; it never republishes. Authorization or integrity errors remain failures.
 - Publication succeeds but later registry checks fail: inspect the exact npm
   version and compare its dist.integrity to the workflow metadata. The version
   may already be public. Do not blindly rerun publication, auto-unpublish or
@@ -124,11 +129,11 @@ unverified until an authorized live run succeeds.
 ## Final human-ready checklist
 
 - [x] Implementation committed/pushed with successful nonpublishing Actions run.
-- [ ] npm ownership/bootstrap complete with explicit approval.
-- [ ] Correct trusted publisher configured and still valid.
-- [ ] Intended previously unpublished version and matching master tag approved.
-- [ ] Actions publication, registry metadata/public access and provenance verified.
-- [ ] A clean isolated supported OpenCode host configured by package name/version
+- [x] npm ownership/bootstrap complete with explicit approval.
+- [x] Correct trusted publisher configured and validated by first OIDC publication.
+- [x] Intended previously unpublished version and matching master tag approved.
+- [x] Actions publication, registry metadata/public access and provenance verified.
+- [x] A clean isolated supported OpenCode host configured by package name/version
       exposes all five timer tools without source checkout or npm credentials.
 
 These are external release gates, not claims of completed local tests. Never

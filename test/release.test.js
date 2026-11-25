@@ -1,11 +1,11 @@
-import { expect, test } from 'vitest';
+import { expect, test, vi } from 'vitest';
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir, homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { validateMetadata, validateTag, validateGit, archiveFiles, validateFiles,
-  integrity, verifyImport, versionAvailable, verifyRegistryMetadata } from '../scripts/release.mjs';
+  integrity, verifyImport, versionAvailable, verifyRegistryMetadata, publishedMetadata } from '../scripts/release.mjs';
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
@@ -119,4 +119,23 @@ test('postpublication evidence matches identity integrity license and provenance
     { ...data, dist: { integrity: metadata.integrity } }, { ...data, dist: { ...data.dist, integrity: 'wrong' } }]) {
     expect(() => verifyRegistryMetadata(changed, metadata)).toThrow();
   }
+});
+
+test('postpublication lookup tolerates bounded registry propagation without republishing', async () => {
+  const data = { name: pkg.name, version: pkg.version };
+  const request = vi.fn()
+    .mockResolvedValueOnce({ ok: false, status: 404 })
+    .mockResolvedValueOnce({ ok: false, status: 503 })
+    .mockResolvedValueOnce({ ok: true, json: async () => data });
+  const wait = vi.fn(async () => {});
+  await expect(publishedMetadata(pkg.version, request, wait)).resolves.toEqual(data);
+  expect(wait).toHaveBeenCalledTimes(2);
+  expect(request).toHaveBeenCalledTimes(3);
+  expect(request.mock.calls[0][1].headers).toEqual({ 'cache-control': 'no-cache' });
+  const absent = vi.fn(async () => ({ ok: false, status: 404 }));
+  await expect(publishedMetadata(pkg.version, absent, wait, 2)).rejects.toThrow('inspect exact version');
+  expect(absent).toHaveBeenCalledTimes(2);
+  const denied = vi.fn(async () => ({ ok: false, status: 403 }));
+  await expect(publishedMetadata(pkg.version, denied, wait)).rejects.toThrow('403');
+  expect(denied).toHaveBeenCalledTimes(1);
 });

@@ -105,3 +105,40 @@ fresh private home/config/cache and loopback deterministic model, rather than a
 local plugin checkout. The child environment does not inherit npm tokens or the
 user's npm config. Public package consumption verification is recorded separately
 after the isolated run completes.
+
+## Automated OIDC release and isolated public consumption
+
+Version **0.1.1** was published by the authorized `v0.1.1` tag at commit
+`59d807d45176681c9be4280b0df019c11bfc33ce`. Its preceding nonpublishing CI
+[45631684787](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/45631684787)
+succeeded. Release run
+[45632419717](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/45632419717)
+successfully validated and published with OIDC/provenance, but its immediate
+postpublication registry check failed while npm still returned HTTP 404.
+The overall run is therefore recorded as **failure**, not falsely called green.
+No rerun or second publication of 0.1.1 was attempted.
+
+After propagation, public version and tarball requests returned HTTP 200.
+The independent `node scripts/release.mjs registry` check succeeded against the
+original validated archive. Its SHA-512 integrity is
+`sha512-Pk46lNSIwmyE2q86p8WYHjcegtyQEX3PbdbNqabVzpoisr7ZOjVhulhx9JXQiV9iNNItGkgLA8rLeFNOomx48A==`.
+Public npm attestations include SLSA v1 provenance identifying this repository,
+`.github/workflows/release.yml`, `refs/tags/v0.1.1`, the exact release commit and
+the artifact digest. Successful OIDC publication provides the first-use evidence
+for the user's newly configured Trusted Publisher.
+
+A regression test reproduced the premature-404 issue before its fix. Registry
+verification now makes at most twelve read-only requests, ten seconds apart,
+for 404/429/server-error propagation responses, with cache bypass. It still
+fails immediately on authorization errors and never invokes publish or weakens
+identity/integrity/provenance checks. **68 deterministic tests pass.**
+
+The full real-host suite passed using the actual public package name
+`@zebrajaeger/opencode-scheduler@0.1.1` on isolated OpenCode **2.3.2** (197s) and
+**2.4.1** (196s), Windows x64. Fresh disposable projects/homes/config/cache,
+no npm credentials, no source plugin path and a loopback deterministic model
+were used. Both runs exercised all five tools, one-shot/recurring execution,
+session/project isolation, foreground/background behavior, interruption,
+deletion and reload. Their child servers were stopped by the harness cleanup.
+No working service or provider configuration was changed. Tasks 4.4–4.5 are now
+verified; historical pending gates above describe the state before this release.
