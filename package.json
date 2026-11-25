@@ -1,0 +1,38 @@
+{
+  "name": "@zebrajaeger/opencode-scheduler",
+  "version": "0.1.0",
+  "description": "Bounded same-session prompt timers for OpenCode agents",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist", "README.md", "docs"],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/zebrajaeger/opencode-scheduler.git"
+  },
+  "publishConfig": { "access": "public" },
+  "engines": { "node": ">=22" },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:integration": "vitest run test/real-host.test.ts",
+    "prepack": "npm run build"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.3.2",
+    "@opencode/schema": "2.3.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "opencode-plugin-241": "npm:@opencode/plugin@2.4.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.1.1"
+  }
+}
