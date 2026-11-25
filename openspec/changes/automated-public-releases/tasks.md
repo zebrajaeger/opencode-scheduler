@@ -23,7 +23,7 @@
 
 ## 4. Verification and explicit publication gates
 
-- [ ] 4.1 Run npm ci, typecheck, all deterministic/release tests, build and real package installation/import; run the existing target-version host suite and publishing-disabled Actions checks, recording exact versions and unavailable environments instead of substituting dry-run success for live evidence.
+- [x] 4.1 Run npm ci, typecheck, all deterministic/release tests, build and real package installation/import; run the existing target-version host suite and publishing-disabled Actions checks, recording exact versions and unavailable environments instead of substituting dry-run success for live evidence.
 - [x] 4.2 Audit every package-release spec scenario against helper tests, workflow checks or explicitly recorded external evidence; inspect the final package and Git diff for forbidden artifacts/credentials and verify no scheduler runtime behavior changed.
 - [x] 4.3 Record a human-ready first-release checklist distinguishing completed implementation/dry runs from pending npm account/trusted-publisher preparation and public release. If live publication is not separately authorized, stop here and leave subsequent tasks open.
 - [ ] 4.4 Only after explicit authorization, complete npm ownership/bootstrap as necessary and trusted-publisher setup, publish a previously unpublished matching stable version through the tag workflow, and record workflow/registry metadata, public access and provenance/integrity. A bootstrap publication must not be reused as a fresh automated version.

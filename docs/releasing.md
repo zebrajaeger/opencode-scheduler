@@ -1,7 +1,7 @@
 # Public npm releases
 
-The release automation is implemented but not yet exercised on GitHub Actions or
-used to publish this package. Local validation does not establish npm ownership,
+The release automation is implemented and its nonpublishing GitHub Actions checks
+have passed; it has not been used to publish this package. Validation does not establish npm ownership,
 trusted publishing, provenance or public OpenCode consumption. See
 [release verification](release-verification.md) for current evidence.
 
@@ -122,7 +122,7 @@ unverified until an authorized live run succeeds.
 
 ## Final human-ready checklist
 
-- [ ] Implementation committed/pushed with successful nonpublishing Actions run.
+- [x] Implementation committed/pushed with successful nonpublishing Actions run.
 - [ ] npm ownership/bootstrap complete with explicit approval.
 - [ ] Correct trusted publisher configured and still valid.
 - [ ] Intended previously unpublished version and matching master tag approved.

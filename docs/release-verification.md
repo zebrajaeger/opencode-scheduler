@@ -44,9 +44,13 @@ modification is authorized by implementing this change.
   candidates against all 65 tracked/new source/documentation files and the
   decompressed generated npm archive: zero matches. Values were not printed or
   copied into project files; this scan is local only, not a CI dependency.
-- GitHub Actions execution, public registry/provenance and clean OpenCode
-  package-name consumption are unverified until explicitly authorized external
-  steps are performed.
+- GitHub Actions run [45618953034](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/45618953034)
+  passed on 2026-11-25 for commit `e63f990`: Linux package job (clean install,
+  typecheck, all 67 tests, build, actual archive install/import) and both isolated
+  Windows real-host jobs, OpenCode 2.3.2 and 2.4.1, all concluded success. No
+  publishing job or release tag was involved. Task 4.1 is verified.
+- Public OIDC publication, registry provenance and clean OpenCode package-name
+  consumption remain unverified until separately authorized release steps.
 - A public registry package lookup returned HTTP 404 on 2026-11-25. The package
   is not publicly available at that check; private namespace ownership/bootstrap
   prerequisites remain unverified and no login/publication was attempted.
@@ -68,16 +72,14 @@ modification is authorized by implementing this change.
 | First publication prerequisites | explicit ownership/bootstrap/2FA and trusted-publisher checklist; no stored npm credentials |
 | Verify a release | registry metadata/public tarball verification implemented; live workflow/registry/consumer evidence remains tasks 4.4–4.5 |
 
-Task 4.2 audits evidence and limitations; it does not mark external release
-scenarios as passed. Task 4.1 remains open until actual publishing-disabled
-GitHub Actions execution is recorded (or a user-approved planning update changes
-that criterion). A local syntax/structure check is not an Actions run.
+Task 4.2 audits evidence and limitations; it does not mark external publication
+scenarios as passed. Task 4.1 is verified by the actual successful nonpublishing
+Actions run above, not just local syntax/structure checks.
 
 ## Pending human-ready gates
 
-1. Authorized implementation commit `c9a64a9` was pushed to master without a
-   release tag. Inspect the resulting nonpublishing `ci.yml` package job and both
-   Windows targets before marking task 4.1 complete.
+1. Authorized commits `c9a64a9` and `e63f990` were pushed to master without a
+   release tag; nonpublishing package and both Windows host CI jobs passed.
 2. Establish/verify npm ownership and first-publication bootstrap if needed,
    with separate explicit authorization and interactive maintainer account/2FA.
 3. Configure npm Trusted Publishing for owner `zebrajaeger`, repository
