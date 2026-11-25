@@ -102,6 +102,25 @@ test('clean fixture import rejects missing package dependencies and invalid expo
   writeFileSync(join(module, 'index.js'), 'export default null;'); expect(() => verifyImport(dir)).toThrow();
 });
 
+test('only the requested project PNG banner is allowed as a binary documentation asset', () => {
+  const valid = files(); valid.set('docs/banner.png', readFileSync('docs/banner.png'));
+  expect(() => validateFiles(valid, pkg.version)).not.toThrow();
+  for (const name of ['docs/other.png', 'docs/private.bin', 'docs/config.json']) {
+    const bad = files(); bad.set(name, readFileSync('docs/banner.png'));
+    expect(() => validateFiles(bad, pkg.version)).toThrow('Forbidden');
+  }
+  const bad = files(); bad.set('docs/banner.png', Buffer.from('not a png'));
+  expect(() => validateFiles(bad, pkg.version)).toThrow('Invalid PNG');
+});
+
+test('German README is permitted explicitly and included by the package allowlist', () => {
+  const valid = files(); valid.set('README.de.md', readFileSync('README.de.md'));
+  expect(() => validateFiles(valid, pkg.version)).not.toThrow();
+  expect(pkg.files).toContain('README.de.md');
+  const other = files(); other.set('README.private.md', Buffer.from('private'));
+  expect(() => validateFiles(other, pkg.version)).toThrow('Forbidden');
+});
+
 test('registry preflight fails closed on duplicates authorization errors outages and transport errors', async () => {
   await expect(versionAvailable(pkg.version, async () => ({ status: 404, ok: false }))).resolves.toBe(true);
   for (const status of [200, 401, 403, 429, 500]) {

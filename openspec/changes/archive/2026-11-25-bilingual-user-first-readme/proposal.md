@@ -6,7 +6,7 @@ The README currently opens with developer commands and is English-only, making t
 
 ## What Changes
 
-- Restructure the single README into German and English language sections with direct language navigation; German appears first as a documented presentation assumption.
+- Provide one README per language as explicitly requested: English in `README.md`, German in `README.de.md`, with mutual relative language links.
 - Put installation, configuration, natural-language examples, supported versions and essential safety limitations before developer instructions in both languages.
 - Add a compact shared badge row for npm version, master CI status, MIT license and Node engine requirement, using public sources and accessible text/link fallbacks.
 - Copy the user-provided PNG banner into `docs/banner.png` and embed it once in the shared README header using that relative project path, never the original Downloads path.
@@ -25,6 +25,8 @@ None. This is a documentation presentation/translation change.
 None. Existing plugin-lifecycle and package-release documentation obligations are preserved, not changed. `skip_specs: true` explicitly opts out of delta specs for this documentation-only change.
 
 ## Impact
+
+The user's follow-up replaces the initial single-file layout. Include README.de.md explicitly in package.json and the exact release archive allowlist, with tests for both files and packaged language links; no runtime dependencies or version changes.
 
 Add `docs/banner.png` to the project. The package includes docs already, but its strict archive validator currently permits only Markdown files there; extend `scripts/release.mjs` narrowly for this specific PNG and add rejection/packaging tests, without broadly accepting arbitrary binary files or changing dependencies.
 

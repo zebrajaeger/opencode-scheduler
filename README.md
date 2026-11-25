@@ -1,35 +1,27 @@
-# @zebrajaeger/opencode-scheduler
+# opencode-scheduler
 
-Bounded, same-session prompt scheduling for OpenCode agents. Real-server integration and interactive client smoke checks are verified for the versions below.
+![OpenCode Scheduler – scheduled and recurring tasks for OpenCode](docs/banner.png)
 
-Repository: https://github.com/zebrajaeger/opencode-scheduler
+[![npm version](https://img.shields.io/npm/v/%40zebrajaeger%2Fopencode-scheduler)](https://www.npmjs.com/package/@zebrajaeger/opencode-scheduler)
+[![CI on master](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml)
+[![MIT license](https://img.shields.io/npm/l/%40zebrajaeger%2Fopencode-scheduler)](LICENSE)
+[![Declared Node engine](https://img.shields.io/node/v/%40zebrajaeger%2Fopencode-scheduler)](package.json)
 
-License: [MIT](LICENSE). Maintainers: see [public release setup](docs/releasing.md)
-and [release verification](docs/release-verification.md).
+[Deutsch](README.de.md) | [English](README.md)
 
-## Development
+Repository: [zebrajaeger/opencode-scheduler](https://github.com/zebrajaeger/opencode-scheduler) · [npm](https://www.npmjs.com/package/@zebrajaeger/opencode-scheduler) · [MIT](LICENSE)
 
-Use Node.js 22 or newer and npm:
+<a id="english"></a>
+## English
 
-```sh
-npm ci
-npm run typecheck
-npm test
-npm run build
-npm pack --dry-run
-```
+Bounded one-shot and recurring prompts for OpenCode agents, always in their original session. Ask your agent to check a container later or monitor a background test regularly without interrupting current work.
 
-The package builds to an ESM server-plugin entry at `dist/index.js`. No publication is performed by these commands.
+[Installation](#en-installation) · [Configuration](#en-configuration) · [Examples and tools](#en-tools) · [Compatibility](#en-compatibility) · [Limits and safety](#en-limits) · [Development](#en-development)
 
-## Compatibility
+<a id="en-installation"></a>
+### Installation
 
-OpenCode **2.3.2 and 2.4.1** are verified with the published API contracts and an isolated real-server integration suite on Windows x64. Interactive smoke checks passed with **OpenCode Web/server 2.4.1** and **OpenChamber Web 2.8.0** on Windows x64. OpenCode V1, other versions and other operating systems are unverified. See [verification results](docs/verification.md).
-
-## Installation
-
-The package is public on [npm](https://www.npmjs.com/package/@zebrajaeger/opencode-scheduler). Enable it globally in
-`~/.config/opencode/opencode.jsonc`, or for a project in `opencode.jsonc` or
-`.opencode/opencode.jsonc`:
+The package is public on npm. Enable it globally in `~/.config/opencode/opencode.jsonc`, or for a project in `opencode.jsonc` or `.opencode/opencode.jsonc`:
 
 ```json
 {
@@ -37,31 +29,24 @@ The package is public on [npm](https://www.npmjs.com/package/@zebrajaeger/openco
 }
 ```
 
-For a specific published version, use
-`"@zebrajaeger/opencode-scheduler@0.1.0"` instead. OpenCode retrieves the public package and its dependencies
-internally: no manual clone or `npm install` is required, but this is not a
-download-free runtime. Normal configuration trust and permissions still apply.
-
-For local development, run `npm ci` and `npm run build`, then configure the
-absolute path to this **package directory**, not `dist/index.js`:
+For a specific published version:
 
 ```json
 {
-  "plugins": ["C:/ws.inc/opencode-scheduler"]
+  "plugins": ["@zebrajaeger/opencode-scheduler@0.1.1"]
 }
 ```
 
-Relative paths resolve from the configuration file. Configure the package once
-per effective location; do not mix multiple versions, a local directory, and the
-published package for the same plugin identity. Global and project plugin arrays
-are processed in precedence order rather than simply replacing each other.
-Unwatched local dependencies can require restarting OpenCode; any restart loses
-in-memory timers. Do not restart a shared service containing important active work
-just to test this package; use an isolated test environment.
+OpenCode retrieves the public package and its dependencies internally. No manual clone, `npm install` or npm credentials are required; network access remains necessary. Normal configuration trust and tool permissions still apply.
 
-## Configuration
+Configure the plugin once per effective location. Do not mix multiple versions, local package paths and the npm package for the same plugin identity. Global and project plugin arrays are processed in precedence order, not simply replaced. Relative paths resolve from the configuration file.
 
-The plugin accepts these options:
+OpenChamber uses the same OpenCode server plugin; no separate extension or panel is needed. Enable it in the selected server's effective configuration. Do not restart a shared service with important active work just to test installation.
+
+<a id="en-configuration"></a>
+### Configuration
+
+Optional plugin defaults:
 
 ```json
 {
@@ -77,101 +62,84 @@ The plugin accepts these options:
 }
 ```
 
-The lifetime is measured from timer creation. Minimum spacing cannot be less than
-30 seconds. See [development and API evidence](docs/development.md).
+All timing uses whole seconds. By default a timer ends **one hour after its original creation**, including waiting and execution time. Minimum spacing is **30 seconds per session across all timers**; it can be increased, never reduced below 30. Explicit `maxLifetimeSeconds` overrides the default.
 
-## Agent tools and examples
+<a id="en-tools"></a>
+### Examples and tools
 
-The five tools are registered by the server plugin.
 Ask the agent in ordinary language, for example:
 
 - “Check in two minutes whether the container has started.”
 - “Give me test status every five minutes, for at most half an hour.”
 - “List my active timers.”
 - “Change the status interval to ten minutes.”
-- “Stop that monitoring timer.” / “Stop all timers in this session.”
+- “Stop that timer.” / “Stop all timers in this session.”
 
-`timer_start` takes `mode` (`once` or `repeat`), `prompt`, optional `label`,
-`delaySeconds`, `intervalSeconds`, and `maxLifetimeSeconds`. Once requires a delay;
-repeat requires an interval and defaults its first delay to that interval.
-`timer_list` and `timer_stop_all` take no arguments. `timer_stop` and `timer_update`
-use an exact `timerId`; update accepts prompt/label/timing/lifetime changes but
-cannot change mode or ownership. The agent lists timers when a reference is ambiguous.
+No extra AGENTS.md instructions or slash commands are needed. The server registers five tools:
 
-All timing uses whole seconds. Maximum lifetime defaults to one hour, measured
-from original creation including busy time. Updating only an interval does not
-extend expiry. An explicit lifetime update also remains relative to creation.
-Tools return JSON with `ok` and `result`, or `ok: false` and an `error` with stable
-`code` and bounded `message`. Listed records expose scheduled, deferred, in-flight,
-or disabled status, accepted run count, schedule, expiry and last error. Accepted
-run count does not mean a downstream task completed successfully.
+| Tool | Purpose |
+| --- | --- |
+| `timer_start` | Create a timer with `mode` (`once` or `repeat`), `prompt`, optional `label` and timing arguments. |
+| `timer_list` | List your active timers; no arguments. |
+| `timer_update` | Update a timer by `timerId`: prompt, label, schedule or lifetime. |
+| `timer_stop` | Stop an owned timer by its exact `timerId`. |
+| `timer_stop_all` | Stop all timers in this session; no arguments. |
 
-Stopping timers prevents new submissions, but a submitted/accepted OpenCode prompt
-can still execute. No tool interrupts unrelated agent activity.
+`once` requires `delaySeconds`. `repeat` requires `intervalSeconds`; the first delay defaults to that interval. `maxLifetimeSeconds` bounds lifetime. Mode and ownership cannot change. When a reference is ambiguous, the agent should list timers first.
 
-## Architecture and timing limits
+Changing only the interval does **not** extend expiry. An explicit lifetime update also remains relative to original creation. Timers belong to the calling session, project and location; another session cannot inspect or modify them.
 
-A location-local in-memory scheduler keeps timer records and one admission gate
-per session. It uses one next-deadline timeout plus bounded acknowledgement
-watchdogs, not an async setInterval loop. The thin host adapter obtains existing
-session information and uses the official `session.prompt` with `delivery: "queue"`.
-It does not create sessions, switch models, interrupt work, or connect to an LLM.
+Tools return JSON with `ok` and `result`, or `ok: false` and `error` with a stable `code` and bounded `message`. Listed records show schedule, expiry, status (`scheduled`, `deferred`, `in-flight` or disabled), accepted run count and last error. An accepted run does not mean the downstream task completed successfully.
 
-A due time is not a guaranteed answer time. Foreground tools and active agent
-executions defer checks; genuine background processes whose initiating tool has
-returned do not block an otherwise idle session. Start tests in the background
-and let the scheduled prompt inspect their output with the agent's normal tools.
+<a id="en-compatibility"></a>
+### Compatibility
 
-At most one scheduler handoff is pending or executing per session, even across
-different timers. The gate stays held after admission until matching delivery and
-terminal execution evidence arrive. Every completed check starts a cooldown of
-at least the configured minimum spacing. Other sessions can progress independently.
-Recurring timers use fixed nominal slots; missed intervals collapse to one check,
-and the following slot is strictly in the future. No catch-up burst occurs after
-long work or sleep, and timers expire even while waiting or executing.
+- **OpenCode 2.3.2 and 2.4.1:** published API contracts and isolated real-server tests verified on Windows x64, including public npm package 0.1.1.
+- **OpenCode Web/server 2.4.1 and OpenChamber Web 2.8.0:** interactive smoke checks passed on Windows x64.
+- **OpenCode V1, other versions and other operating systems:** unverified.
+- Declared Node requirement: **Node.js >=22**. The Node badge shows the package engine range, not a complete test matrix.
 
-Admission/execution errors disable the associated timer rather than retrying in
-a loop. An explicit valid update can rearm a resolved recurring timer. Ambiguous
-or stalled admission keeps a conservative session gate: list shows a diagnostic,
-but neither stopping that timer nor creating another one bypasses potentially
-accepted input. An already submitted one-shot cannot be rearmed. Event-stream
-failure disables dispatch rather than guessing that every session is idle.
+[Verification](docs/verification.md) · [Release evidence](docs/release-verification.md) · [Smoke test](docs/smoke-test.md)
 
-The plugin cannot retract an accepted Inbox item through the available plugin
-session API. Stop, expiry, interruption or unload prevents future local admissions,
-but input already handed to OpenCode can still run, including after another wake
-or plugin reload. This boundary is deliberate; the plugin never interrupts the
-whole session to cancel a monitoring prompt.
+<a id="en-limits"></a>
+### Limits and safety
 
-## Lifecycle, permissions, and OpenChamber
+- **A due time is not a guaranteed answer time.** Active agent work and foreground tools defer timers. Real background processes do not block an otherwise idle session once their initiating tool returns. The agent must inspect actual status with its normal tools; elapsed time alone is not evidence.
+- Prompts use `delivery: "queue"` in the existing session. History, agent, model, permissions and working context remain intact. No replacement session, plugin-owned LLM request or interruption of unrelated work.
+- At most one scheduler handoff is pending or executing per session. Its barrier survives acceptance until matching delivery and terminal execution evidence arrive. Each completed check starts the minimum cooldown; other sessions progress independently.
+- Recurrence uses fixed nominal slots. Missed intervals coalesce into one check, not a catch-up burst, including after long work or sleep. The next slot is in the future; expired timers do not restart.
+- Admission/execution errors disable the timer instead of looping. A valid explicit update can rearm a resolved recurring timer. Ambiguous or stalled admissions keep a conservative session barrier; stopping and recreating timers cannot bypass it. An already submitted one-shot cannot rearm. Event-stream failure blocks dispatch instead of guessing eligibility.
+- **In-memory only:** unload, reload, server restart or exit loses all timers. No recovery file, database or separate background service. Cleanup clears timeouts, subscriptions and registrations without waiting for ongoing agent work.
+- `session.execution.interrupted` stops all timers in the interrupted session. A normal answer or switching chats does not. Hidden sessions can continue. Deletion removes timers; moving to another project/worktree requires creating new ones at the destination. Forks do not inherit timers.
+- **Permissions remain in force.** A scheduled prompt can wait for required tool approval. The plugin never auto-approves; unattended scheduling does not guarantee unattended execution.
+- **Already accepted OpenCode input cannot reliably be retracted.** Stop, expiry, interruption and unload prevent new local admissions, but a submitted prompt can still run, including after reload. The plugin does not interrupt the whole session to remove a monitoring prompt.
+- Ownership and serialization apply within one server and plugin location. Separate server processes do not coordinate their timers.
 
-All timer state exists only in this plugin's memory. Unload, reload, service
-restart or server exit discards timers; there is no recovery file, database,
-daemon, or automatic reinstallation. Cleanup clears owned timeouts, subscriptions
-and registrations without waiting for ongoing agent work. Already accepted
-OpenCode input is managed by OpenCode, not restored timer state.
+<a id="en-development"></a>
+### Developer documentation
 
-`session.execution.interrupted` removes all timers in that session. A normal
-successful answer or selecting another chat does not stop them. Deleted sessions
-are removed, and moving a session into another project/location stops its original
-timers; create new timers at the destination. Forks do not inherit timers.
-The server can run a timer in a session that is not displayed or has no UI client.
+Use Node.js >=22 and npm for development:
 
-Unattended scheduling does not bypass permissions. If the scheduled prompt invokes
-a tool requiring approval, OpenCode will still request approval and execution can
-remain blocked until a user responds. Configure suitable permissions through
-normal OpenCode policy; this plugin never grants them automatically.
+```sh
+npm ci
+npm run typecheck
+npm test
+npm run build
+npm pack --dry-run
+```
 
-OpenChamber uses the OpenCode server plugin, so no OpenChamber extension or panel
-is needed. Enable the plugin in the server's effective OpenCode configuration.
-Changing chats is not stopping the service. Avoid testing a service restart on
-your working sessions. OpenChamber compatibility is verified by the recorded
-manual smoke checks for Web 2.8.0 with OpenCode 2.4.1, not by unit tests alone.
+These commands do not publish anything. The build produces the ESM entry `dist/index.js` and declarations. For a local installation after building, configure the absolute **package directory**, not a single compiled file:
 
-Ownership and serialization guarantees apply within one server and plugin
-location. Separate OpenCode server processes do not coordinate their in-memory
-timers. V1 and unverified V2 versions are not advertised as supported.
+```json
+{
+  "plugins": ["C:/ws.inc/opencode-scheduler"]
+}
+```
 
-The [interactive smoke procedure](docs/smoke-test.md) covers OpenCode and
-OpenChamber; its recorded execution is complete for the versions above. Results are in
-[verification status](docs/verification.md).
+Unwatched local dependencies may require restarting OpenCode; this discards in-memory timers. Use an isolated test instance.
+
+Architecture: a location-local scheduler holds timer records and one admission barrier per session. One next-deadline timeout with bounded acknowledgement watchdogs replaces an async `setInterval` loop. A thin host adapter reads session state and uses the official session API.
+
+[Development and API evidence](docs/development.md) · [Scenario audit](docs/scenario-audit.md) · [Release guide](docs/releasing.md)
+
+License: [MIT](LICENSE). These repository READMEs do not update existing immutable npm releases; a new separately authorized release is required for that.

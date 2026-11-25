@@ -81,9 +81,14 @@ export function validateFiles(files, version) {
     /(?:api[_-]?key|access[_-]?token|client[_-]?secret|password)\s*[=:]\s*["'][^"'\r\n]{8,}["']/i,
     /https?:\/\/[^\s/@:]+:[^\s/@]+@/];
   for (const [name, data] of files) {
-    const permitted = ['package.json', 'README.md', 'LICENSE'].includes(name)
-      || /^dist\/[a-z-]+\.(?:js|d\.ts)$/.test(name) || /^docs\/[a-z-]+\.md$/.test(name);
+    const permitted = ['package.json', 'README.md', 'README.de.md', 'LICENSE'].includes(name)
+      || /^dist\/[a-z-]+\.(?:js|d\.ts)$/.test(name) || /^docs\/[a-z-]+\.md$/.test(name) || name === 'docs/banner.png';
     assert(permitted, `Forbidden package artifact: ${name}`);
+    if (name === 'docs/banner.png') {
+      assert(data.length >= 24 && data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))
+        && data.subarray(12, 16).toString('ascii') === 'IHDR'
+        && data.readUInt32BE(16) > 0 && data.readUInt32BE(20) > 0, 'Invalid PNG banner');
+    }
     assert(!patterns.some(pattern => pattern.test(data.toString('utf8'))), `Possible secret in archive file: ${name}`);
   }
   const pkg = JSON.parse(files.get('package.json').toString('utf8'));

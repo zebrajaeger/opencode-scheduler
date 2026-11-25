@@ -14,9 +14,9 @@ This change deliberately has no delta specs. It preserves the existing documenta
 
 ## Decisions
 
-### Single README with explicit language navigation
+### Separate language READMEs (updated user decision)
 
-Use one package title, one shared badge row, and `Deutsch | English` links to explicit `deutsch` and `english` anchors. German comes first as a reversible presentation assumption based on the user's request. Each language has its own short overview and local section links with distinct IDs (for example `de-installation` / `en-installation`) to avoid duplicate-heading anchor collisions. Prefer small explicit anchors and normal Markdown; no tables for full prose, collapsible whole translations, scripts or multi-column layout. This works on GitHub/npm and narrow screens. Separate README.de.md was considered but would make npm language access depend on an extra packaged file and is unnecessary for two languages.
+The user explicitly requested one README per language. Use English README.md as the default GitHub/npm entry and German README.de.md alongside it. Repeat title/banner/badges in each and provide mutual relative language links. Each file retains language-specific local section anchors and self-contained user-first content. Include README.de.md explicitly in package.json and permit only that additional filename in the archive validator; verify it and both language links in the actual tarball. No general README wildcard is introduced.
 
 ### Users before developers in both languages
 
