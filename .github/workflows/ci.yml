@@ -1,0 +1,56 @@
+name: Validate package
+
+on:
+  pull_request:
+  push:
+    branches: [master]
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.20.0' # includes npm 11.19.0
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm test
+      - run: npm run build
+      - run: npm run release:check
+
+  host:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        opencode: ['2.3.2', '2.4.1']
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '24.20.0'
+      - run: npm ci
+      - run: npm run build
+      - name: Install isolated target CLI
+        env:
+          OPENCODE_VERSION: ${{ matrix.opencode }}
+        shell: pwsh
+        run: |
+          npm install --prefix "$env:RUNNER_TEMP/opencode-cli" --no-audit --no-fund "@opencode/cli@$env:OPENCODE_VERSION"
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          "SCHEDULER_OPENCODE_BIN=$env:RUNNER_TEMP/opencode-cli/node_modules/@opencode/cli/bin/opencode.exe" >> $env:GITHUB_ENV
+      - name: Run real isolated host suite
+        env:
+          SCHEDULER_REAL_HOST: '1'
+          SCHEDULER_TEST_TMP: ${{ runner.temp }}
+        run: npm run test:integration

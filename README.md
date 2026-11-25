@@ -4,6 +4,9 @@ Bounded, same-session prompt scheduling for OpenCode agents. Real-server integra
 
 Repository: https://github.com/zebrajaeger/opencode-scheduler
 
+License: [MIT](LICENSE). Maintainers: see [public release setup](docs/releasing.md)
+and [release verification](docs/release-verification.md).
+
 ## Development
 
 Use Node.js 22 or newer and npm:
@@ -33,6 +36,12 @@ This package is not published yet. After publication, enable it globally in
   "plugins": ["@zebrajaeger/opencode-scheduler"]
 }
 ```
+
+For a specific published version, use
+`"@zebrajaeger/opencode-scheduler@0.1.0"` instead (example version; publication is
+not yet verified). OpenCode retrieves the public package and its dependencies
+internally: no manual clone or `npm install` is required, but this is not a
+download-free runtime. Normal configuration trust and permissions still apply.
 
 For local development, run `npm ci` and `npm run build`, then configure the
 absolute path to this **package directory**, not `dist/index.js`:

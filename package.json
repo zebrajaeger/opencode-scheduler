@@ -1,6 +1,7 @@
 {
   "name": "@zebrajaeger/opencode-scheduler",
   "version": "0.1.0",
+  "license": "MIT",
   "description": "Bounded same-session prompt timers for OpenCode agents",
   "type": "module",
   "main": "./dist/index.js",
@@ -11,7 +12,7 @@
       "import": "./dist/index.js"
     }
   },
-  "files": ["dist", "README.md", "docs"],
+  "files": ["dist", "README.md", "LICENSE", "docs"],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/zebrajaeger/opencode-scheduler.git"
@@ -23,6 +24,7 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run test/real-host.test.ts",
+    "release:check": "node scripts/release.mjs pack",
     "prepack": "npm run build"
   },
   "dependencies": {
