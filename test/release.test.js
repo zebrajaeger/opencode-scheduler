@@ -1,7 +1,7 @@
 import { expect, test } from 'vitest';
 import { readFileSync, writeFileSync, mkdtempSync, mkdirSync } from 'node:fs';
 import { join } from 'node:path';
-import { tmpdir } from 'node:os';
+import { tmpdir, homedir } from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { gzipSync, gunzipSync } from 'node:zlib';
 import { validateMetadata, validateTag, validateGit, archiveFiles, validateFiles,
@@ -9,6 +9,8 @@ import { validateMetadata, validateTag, validateGit, archiveFiles, validateFiles
 
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
+const temporary = process.env.RUNNER_TEMP ?? (process.platform === 'win32'
+  ? join(homedir(), 'AppData/Local/Temp/opencode') : tmpdir());
 const required = ['dist/index.js', 'dist/index.d.ts', 'dist/scheduler.js', 'dist/scheduler.d.ts',
   'dist/tools.js', 'dist/tools.d.ts', 'dist/opencode-adapter.js', 'dist/opencode-adapter.d.ts'];
 function files() {
@@ -43,7 +45,7 @@ test('release identity requires canonical matching stable package and lockfile m
 });
 
 test('release ancestry validates annotated tags and refuses unrelated commits or unsafe input', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'scheduler-git-test-'));
+  const dir = mkdtempSync(join(temporary, 'scheduler-git-test-'));
   const git = args => execFileSync('git', args, { cwd: dir, stdio: 'pipe', encoding: 'utf8' }).trim();
   git(['init', '--quiet']); git(['config', 'user.name', 'Fixture']); git(['config', 'user.email', 'fixture@example.invalid']);
   git(['commit', '--allow-empty', '-m', 'base']);
@@ -90,7 +92,7 @@ test('package inspection requires compiled artifacts and MIT and refuses private
 });
 
 test('clean fixture import rejects missing package dependencies and invalid exports', () => {
-  const dir = mkdtempSync(join(tmpdir(), 'scheduler-import-test-'));
+  const dir = mkdtempSync(join(temporary, 'scheduler-import-test-'));
   expect(() => verifyImport(dir)).toThrow();
   const module = join(dir, 'node_modules/@zebrajaeger/opencode-scheduler'); mkdirSync(module, { recursive: true });
   writeFileSync(join(module, 'package.json'), JSON.stringify({ type: 'module', main: 'index.js' }));

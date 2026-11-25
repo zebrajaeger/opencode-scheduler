@@ -10,17 +10,26 @@ modification is authorized by implementing this change.
 - `npm ci` succeeded in an independent clean temporary project with the current
   package/lockfile. A concurrent reinstall in the working checkout hit a Windows
   Rollup file lock held by the running host-test process; that attempt is not
-  counted as success and the checkout dependencies must be restored afterward.
+  counted as success. Dependencies were restored, and a subsequent working-
+  checkout `npm ci` also succeeded (308 packages). Typecheck, all 67 tests, build
+  and archive installation/import passed again in the working checkout as well
+  as the separate clean fixture.
 - 67 deterministic scheduler, release helper and workflow tests passed; the
   opt-in real-host test is skipped in ordinary `npm test`.
 - Actual `npm run release:check` succeeded: the tarball contains required ESM
   files/declarations, README and MIT LICENSE; forbidden archive files and secret
   patterns are rejected. Its dependencies install with scripts disabled in an
   isolated fixture, and its default plugin export imports successfully.
+  The final dry-run manifest contains 17 files (license, README, eight compiled
+  entry/declaration files, six documentation files and package.json); it contains
+  no source/tests/workflows, node_modules or private configuration.
 - `actionlint` 1.7.12 independently validated both workflow files with no
   diagnostics. Its downloaded Windows binary archive was SHA-256 checked against
   the upstream release digest. ShellCheck/Pyflakes integrations were disabled;
   those are not claimed tested.
+- The actual release preflight entrypoint rejected manipulated handoff integrity
+  before making a registry request. Its CLI identity gate also rejected a tag
+  containing shell syntax without evaluating it.
 - Full action commit pins were resolved from upstream GitHub refs: checkout
   v4.3.1, setup-node v4.4.0, upload-artifact v4.6.2, download-artifact v4.3.0.
 - Node's release index confirms 24.20.0 includes npm 11.19.0, above npm's OIDC
@@ -38,6 +47,9 @@ modification is authorized by implementing this change.
 - GitHub Actions execution, public registry/provenance and clean OpenCode
   package-name consumption are unverified until explicitly authorized external
   steps are performed.
+- A public registry package lookup returned HTTP 404 on 2026-11-25. The package
+  is not publicly available at that check; private namespace ownership/bootstrap
+  prerequisites remain unverified and no login/publication was attempted.
 
 ## Scenario audit
 
@@ -63,8 +75,9 @@ that criterion). A local syntax/structure check is not an Actions run.
 
 ## Pending human-ready gates
 
-1. Obtain authorization to commit/push this implementation so nonpublishing
-   `ci.yml` can run on GitHub; inspect the package job and both Windows targets.
+1. Authorized implementation commit `c9a64a9` was pushed to master without a
+   release tag. Inspect the resulting nonpublishing `ci.yml` package job and both
+   Windows targets before marking task 4.1 complete.
 2. Establish/verify npm ownership and first-publication bootstrap if needed,
    with separate explicit authorization and interactive maintainer account/2FA.
 3. Configure npm Trusted Publishing for owner `zebrajaeger`, repository
