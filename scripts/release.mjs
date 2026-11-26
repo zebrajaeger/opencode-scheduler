@@ -147,16 +147,20 @@ export function verifyRegistryMetadata(data, metadata) {
 }
 
 export async function publishedMetadata(version, request = fetch,
-  wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)), attempts = 12) {
+  wait = milliseconds => new Promise(resolve => setTimeout(resolve, milliseconds)), attempts = 30,
+  report = message => console.info(message)) {
   assert(stable.test(version), 'Invalid registry version');
+  assert(Number.isSafeInteger(attempts) && attempts >= 1 && attempts <= 30, 'Invalid registry verification attempt limit');
   for (let attempt = 0; attempt < attempts; attempt++) {
     const response = await request(`${registry}/${encodeURIComponent(packageName)}/${version}?verify=${Date.now()}`, {
-      signal: AbortSignal.timeout(30_000), headers: { 'cache-control': 'no-cache' },
+      signal: AbortSignal.timeout(10_000), headers: { 'cache-control': 'no-cache' },
     });
+    report(`Registry verification ${attempt + 1}/${attempts}: HTTP ${response.status ?? 200}`);
     if (response.ok) return response.json();
     const transient = response.status === 404 || response.status === 429 || response.status >= 500;
     assert(transient && attempt + 1 < attempts,
-      `Postpublication registry check failed (${response.status}); inspect exact version before any retry`);
+      `Postpublication registry check failed (${response.status}); inspect exact version before any retry. `
+      + `The publish step may already have succeeded. Do not rerun publication; retry only the registry verification.`);
     await wait(10_000);
   }
   throw new Error('Postpublication verification exhausted');

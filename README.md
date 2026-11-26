@@ -33,7 +33,7 @@ For a specific published version:
 
 ```json
 {
-  "plugins": ["@zebrajaeger/opencode-scheduler@0.1.2"]
+  "plugins": ["@zebrajaeger/opencode-scheduler@0.1.3"]
 }
 ```
 

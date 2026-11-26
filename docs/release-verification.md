@@ -1,5 +1,34 @@
 # Automated public release verification
 
+## 0.1.2 postpublication verification incident (2026-11-26)
+
+The second attempt of release run 45647266387 published 0.1.2, but the subsequent
+read-only registry verifier exhausted its original twelve attempts with HTTP 404.
+That is a failed overall workflow, not a failed/absent npm publication. Independent
+public metadata/tarball checks subsequently confirmed 0.1.2, correct SHA-512
+integrity, SLSA provenance, README.md, README.de.md and docs/banner.png. No duplicate
+publication was attempted. Registry propagation delay is consistent with the
+observed 404-then-200 responses; the exact CDN/cache cause is not established.
+
+Two regression tests first failed against the twelve-attempt implementation.
+Verification now allows at most thirty reads with ten-second pauses, ten-second
+per-request timeouts and per-attempt HTTP diagnostics. Publication is never
+retried; authorization/integrity/provenance failures remain failures. The
+publishing job timeout is twenty minutes to accommodate this bounded verification.
+Exhaustion explicitly warns that publication may already have succeeded and
+directs maintainers to retry verification only. Existing release tags retain
+their original verifier. These changes have not yet been pushed or run on Actions.
+
+## Actions runtime maintenance (2026-11-26)
+
+CI and release workflows now pin native Node 24 actions: checkout v6.1.0,
+setup-node v6.4.0, upload-artifact v6.0.0 and download-artifact v7.0.0.
+Each immutable commit's upstream action.yml was checked for `using: node24`.
+This replaces actions whose internal Node 20 runtime triggered deprecation
+warnings; it is separate from the unchanged project toolchain Node 24.20.0.
+Existing release tags retain their original workflow and are not rewritten.
+Hosted execution of these new pins is unverified until the changes are pushed.
+
 Implementation date: 2026-11-25. This document separates local evidence from
 external release gates. No npm package publication, GitHub tag push or account
 modification is authorized by implementing this change.

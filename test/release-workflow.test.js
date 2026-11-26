@@ -33,8 +33,17 @@ test('release validates tag before install and passes only the same tested archi
 });
 
 test('actions are immutable and credentials are not persisted or supplied by secrets', () => {
+  const node24Pins = {
+    checkout: 'd23441a48e516b6c34aea4fa41551a30e30af803',
+    'setup-node': '48b55a011bda9f5d6aeb4c2d9c7362e8dae4041e',
+    'upload-artifact': 'b7c566a772e6b6bfb58ed0dc250532a479d7789f',
+    'download-artifact': '37930b1c2abaa49bbe596cd826c3c89aef350131',
+  };
   for (const text of [ci, release]) {
     for (const match of text.matchAll(/uses: (\S+)/g)) expect(match[1]).toMatch(/^actions\/[a-z-]+@[a-f0-9]{40}$/);
+    for (const match of text.matchAll(/uses: actions\/([a-z-]+)@([a-f0-9]{40})/g)) {
+      expect(match[2]).toBe(node24Pins[match[1]]);
+    }
     expect(text).not.toMatch(/secrets\.|NPM_TOKEN|NODE_AUTH_TOKEN|_authToken|password:/i);
     expect(text.match(/persist-credentials: false/g)?.length).toBe(text.match(/uses: actions\/checkout/g)?.length);
     expect(text).toContain("node-version: '24.20.0'");

@@ -158,3 +158,26 @@ test('postpublication lookup tolerates bounded registry propagation without repu
   await expect(publishedMetadata(pkg.version, denied, wait)).rejects.toThrow('403');
   expect(denied).toHaveBeenCalledTimes(1);
 });
+
+test('postpublication verification survives propagation beyond the original twelve-read window', async () => {
+  const data = { name: pkg.name, version: pkg.version };
+  let calls = 0;
+  const request = vi.fn(async () => ++calls <= 15
+    ? { ok: false, status: 404 }
+    : { ok: true, json: async () => data });
+  const wait = vi.fn(async () => {});
+  const report = vi.fn();
+  await expect(publishedMetadata(pkg.version, request, wait, undefined, report)).resolves.toEqual(data);
+  expect(calls).toBe(16);
+  expect(wait).toHaveBeenCalledTimes(15);
+  expect(report).toHaveBeenCalledWith(expect.stringContaining('HTTP 404'));
+  expect(report).toHaveBeenCalledWith(expect.stringContaining('16/30'));
+});
+
+test('postpublication verification remains bounded and explains that publish must not be retried', async () => {
+  const absent = vi.fn(async () => ({ ok: false, status: 404 }));
+  const wait = vi.fn(async () => {});
+  await expect(publishedMetadata(pkg.version, absent, wait, 3, () => {})).rejects.toThrow('Do not rerun publication');
+  expect(absent).toHaveBeenCalledTimes(3);
+  expect(wait).toHaveBeenCalledTimes(2);
+});

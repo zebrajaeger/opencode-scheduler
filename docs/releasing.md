@@ -116,7 +116,8 @@ unverified until an authorized live run succeeds.
   workflow identity/expiry. No long-lived-token fallback exists.
 - Network/preflight errors other than exact HTTP 404: publication is blocked.
 - After publication, temporary metadata propagation responses (404/429/5xx)
-  are checked at most twelve times with ten-second pauses. This only retries
+  are checked at most thirty times with ten-second pauses and ten-second request
+  timeouts; each attempt logs its HTTP status. This only retries
   reads; it never republishes. Authorization or integrity errors remain failures.
 - Publication succeeds but later registry checks fail: inspect the exact npm
   version and compare its dist.integrity to the workflow metadata. The version
