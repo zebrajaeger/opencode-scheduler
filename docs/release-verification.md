@@ -1,5 +1,21 @@
 # Automated public release verification
 
+## Successful complete 0.1.3 release (2026-11-26)
+
+Commit `ad6f9f5`, explicitly tagged `v0.1.3`, passed nonpublishing CI run
+[45772096744](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/45772096744).
+The full OIDC release run
+[45772621561](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/45772621561)
+then concluded **success**: both validate and publish jobs, including the bounded
+public registry integrity/provenance check, passed. Neither job reported the
+deprecated Node 20 action-runtime warning.
+
+Independent unauthenticated registry/tarball checks returned HTTP 200 for 0.1.3,
+matched the validated archive SHA-512 integrity and confirmed provenance. The
+published README.md, README.de.md and docs/banner.png match the project bytes.
+All 78 local tests, typecheck, package installation/import and actionlint passed
+before tagging. No previous version or tag was rewritten or republished.
+
 ## 0.1.2 postpublication verification incident (2026-11-26)
 
 The second attempt of release run 45647266387 published 0.1.2, but the subsequent
@@ -17,7 +33,8 @@ retried; authorization/integrity/provenance failures remain failures. The
 publishing job timeout is twenty minutes to accommodate this bounded verification.
 Exhaustion explicitly warns that publication may already have succeeded and
 directs maintainers to retry verification only. Existing release tags retain
-their original verifier. These changes have not yet been pushed or run on Actions.
+their original verifier. The changes were subsequently pushed and verified by
+the successful 0.1.3 release recorded above.
 
 ## Actions runtime maintenance (2026-11-26)
 
@@ -27,7 +44,7 @@ Each immutable commit's upstream action.yml was checked for `using: node24`.
 This replaces actions whose internal Node 20 runtime triggered deprecation
 warnings; it is separate from the unchanged project toolchain Node 24.20.0.
 Existing release tags retain their original workflow and are not rewritten.
-Hosted execution of these new pins is unverified until the changes are pushed.
+Hosted execution of these pins is verified by the successful 0.1.3 CI/release runs above.
 
 Implementation date: 2026-11-25. This document separates local evidence from
 external release gates. No npm package publication, GitHub tag push or account
