@@ -43,15 +43,19 @@ test('languages have identical valid JSON configurations and executable develope
   }
 });
 
-test('both READMEs distinguish unpublished durable automation contracts from temporary timers', () => {
+test('both READMEs distinguish released durable automation contracts from temporary timers', () => {
   for (const text of [german, english]) {
     for (const term of ['automation_create', 'automation_list', 'automation_update', 'automation_pause', 'automation_resume',
       'automation_remove', 'automation_targets', 'new-reuse', 'new-each-run', 'Europe/Berlin', '0 9 * * 1-5',
-      'missedPolicy', 'skip', 'catch-up-once', 'unresolved', '0.1.3']) expect(text).toContain(term);
+      'missedPolicy', 'skip', 'catch-up-once', 'unresolved', '0.1.3', '0.2.0']) expect(text).toContain(term);
     expect(text).toContain('"kind": "cron"');
   }
   for (const term of ['not part of the already published', 'OpenCode server', 'plugin location', 'never auto-approves']) expect(english).toContain(term);
-  for (const term of ['noch nicht im bereits veröffentlichten', 'Plugin-Standort', 'keine automatische Genehmigung']) expect(german).toContain(term);
+  for (const term of ['nicht im bereits veröffentlichten', 'Plugin-Standort', 'keine automatische Genehmigung']) expect(german).toContain(term);
+  expect(english).toContain('is published on npm');
+  expect(german).toContain('ist auf npm veröffentlicht');
+  expect(english).not.toContain('while its release is pending');
+  expect(german).not.toContain('sobald es auf npm verfügbar ist');
 });
 
 test('both user sections preserve tool identifiers timing ownership and critical lifecycle limits', () => {
@@ -68,7 +72,7 @@ test('both user sections preserve tool identifiers timing ownership and critical
   for (const phrase of ['original creation', 'does **not** extend expiry', 'submitted prompt can still run', 'never auto-approves', 'In-memory only']) expect(english).toContain(phrase);
 });
 
-test('bilingual automation guidance matches tool inputs and does not imply published or provider support', () => {
+test('bilingual automation guidance matches tool inputs and excludes older-package or provider support', () => {
   for (const text of [german, english]) {
     for (const name of ['automation_create', 'automation_list', 'automation_update', 'automation_pause', 'automation_resume', 'automation_remove', 'automation_targets',
       'new-reuse', 'new-each-run', 'intervalSeconds', 'timeZone', 'Europe/Berlin', 'missedPolicy', 'skip', 'catch-up-once', 'unresolved', '0.1.3']) expect(text).toContain(name);
@@ -83,7 +87,7 @@ test('bilingual automation guidance matches tool inputs and does not imply publi
     expect(validateMissedPolicy('catch-up-once')).toBe('catch-up-once');
   }
   for (const phrase of ['not part of the already published', 'without a separate service', 'closing a UI window', 'has no GitHub integration']) expect(english).toContain(phrase);
-  for (const phrase of ['noch nicht im bereits veröffentlichten', 'ohne eigenen Dienst', 'geschlossenes UI-Fenster', 'keine eigene GitHub-Integration']) expect(german).toContain(phrase);
+  for (const phrase of ['nicht im bereits veröffentlichten', 'ohne eigenen Dienst', 'geschlossenes UI-Fenster', 'keine eigene GitHub-Integration']) expect(german).toContain(phrase);
 });
 
 test('local links exist and German advanced documentation is labelled English', () => {

@@ -25,9 +25,8 @@ plugin lifecycle specification; the change was archived at
 `openspec/changes/archive/2026-11-27-add-persistent-prompt-automations`.
 
 The user authorized commit, push, tag-triggered release and public publication
-on 2026-11-27. The intended stable version is 0.2.0. Publication is pending until
-the tag-triggered OIDC workflow and public registry verification succeed; local
-package checks and this document are not publication evidence.
+on 2026-11-27. Version 0.2.0 was published successfully after the gates below;
+local package checks alone were not treated as publication evidence.
 
 Release-preparation checks passed with 245 local tests (3 opt-in host tests
 skipped), typecheck, strict validation of all seven synchronized main specs, and
@@ -35,6 +34,39 @@ the real 0.2.0 tarball installation/import check. The archived deltas are checke
 against the main specs by a deterministic regression. Windows branch CI now
 reruns all three isolated timer/automation host suites on both asserted versions
 before the release tag is pushed.
+
+## Successful public publication (2026-11-27)
+
+- Release commit `225cd11e4dcf7318f8e4fcf40bda19c36b9d33e4` was pushed to `main`.
+- [Branch CI 46036116647](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/46036116647)
+  passed its package job and both Windows host jobs, including all three isolated
+  timer/lifecycle, automation restart and full automation acceptance suites on
+  OpenCode 2.3.2 and 2.4.1.
+- Annotated tag `v0.2.0` points to that exact commit.
+- [Release run 46037156483](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/46037156483)
+  passed both validate and publish jobs, including OIDC publication and the
+  public registry integrity/provenance check.
+- Unauthenticated npm metadata and tarball reads independently returned HTTP
+  200. The registry reports publication at `2026-11-27T16:54:05.439Z` and
+  `latest: 0.2.0` for `@zebrajaeger/opencode-scheduler`.
+- The public 37-file tarball exactly matches a clean rebuild of the release
+  commit with Git `core.autocrlf=false`, including its SHA-512 integrity:
+  `sha512-Wd5GhH1eF/oivxq3OA+zZKe6o/vQf02j8g/1Y+zU/GfDKp8GmlC1VuqQu+9ICblNVgmtC0CC4QneKIuGgG05+Q==`.
+- The downloaded SLSA v1 provenance statement binds the tarball digest to this
+  repository, `.github/workflows/release.yml`, `refs/tags/v0.2.0`, the exact
+  release commit and run 46037156483. This checks public statement identity and
+  digest; it is not a separate cryptographic Sigstore verification.
+- The public tarball passed the package allowlist, isolated dependency
+  installation with scripts disabled, and default plugin ESM import.
+
+An initial independent comparison against the existing Windows checkout failed:
+its ignored `dist` directory retained 24 unrelated compiled files and some
+packaged text used CRLF. A fresh default Windows archive removed those extra
+files but still used CRLF. A second fresh archive with `core.autocrlf=false`
+reproduced the CI/public tarball byte-for-byte. No files in the existing ignored
+output were deleted, and no publication retry or tag rewrite was attempted.
+The later documentation-only evidence commit does not change the released tag
+or the already published package.
 
 ## Runtime limits
 

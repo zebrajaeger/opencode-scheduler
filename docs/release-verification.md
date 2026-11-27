@@ -1,5 +1,22 @@
 # Automated public release verification
 
+## Successful complete 0.2.0 release (2026-11-27)
+
+Commit `225cd11`, explicitly tagged `v0.2.0`, passed
+[branch CI 46036116647](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/46036116647),
+including the package job and all three isolated timer/automation host suites
+on both Windows OpenCode targets (2.3.2 and 2.4.1). The OIDC
+[release run 46037156483](https://github.com/zebrajaeger/opencode-scheduler/actions/runs/46037156483)
+then succeeded in both jobs, including public registry integrity/provenance.
+
+Independent public metadata, tarball and SLSA v1 statement checks succeeded;
+the registry reports `latest: 0.2.0`. A clean LF rebuild exactly reproduces the
+37-file public tarball and SHA-512 digest. Public-tarball isolated installation
+and plugin ESM import also passed. The first existing-checkout comparison failed
+because ignored stale build outputs and CRLF differed from CI; no published bytes
+were changed or republished. See [complete 0.2.0 evidence](automation-release.md)
+for the exact digest, provenance checks and diagnostic boundaries.
+
 ## Successful complete 0.1.3 release (2026-11-26)
 
 Commit `ad6f9f5`, explicitly tagged `v0.1.3`, passed nonpublishing CI run

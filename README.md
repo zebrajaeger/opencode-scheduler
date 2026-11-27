@@ -93,7 +93,7 @@ Tools return JSON with `ok` and `result`, or `ok: false` and `error` with a stab
 
 ### Persistent automations
 
-Version **0.2.0** adds durable routines alongside temporary timers. This feature is **not part of the already published 0.1.3 package**; use 0.2.0 once available on npm, or a locally built package while its release is pending.
+Version **0.2.0** adds durable routines alongside temporary timers and is published on npm. This feature is **not part of the already published 0.1.3 package**; use 0.2.0 or newer. See [release evidence](docs/automation-release.md).
 
 > “Every weekday at 9 AM Europe/Berlin, check my assigned open pull requests and list their direct links. Use a new chat called ‘My Pull Requests’.”
 

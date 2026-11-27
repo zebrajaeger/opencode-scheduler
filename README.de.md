@@ -93,7 +93,7 @@ Die Tools liefern JSON mit `ok` und `result`, bei Fehlern `ok: false` und `error
 
 ### Dauerhafte Automationen
 
-Version **0.2.0** ergänzt dauerhafte Abläufe neben temporären Timern. Die Funktion ist **noch nicht im bereits veröffentlichten Paket 0.1.3 enthalten**; verwende 0.2.0, sobald es auf npm verfügbar ist, oder während der Veröffentlichung ein lokal gebautes Paket.
+Version **0.2.0** ergänzt dauerhafte Abläufe neben temporären Timern und ist auf npm veröffentlicht. Die Funktion ist **nicht im bereits veröffentlichten Paket 0.1.3 enthalten**; verwende 0.2.0 oder neuer. Siehe [Release-Nachweise (Englisch)](docs/automation-release.md).
 
 > „Prüfe jeden Werktag um 9 Uhr Europe/Berlin meine zugeordneten offenen Pull Requests und liste direkte Links auf. Verwende einen neuen Chat namens ‚Meine Pull Requests‘.“
 
