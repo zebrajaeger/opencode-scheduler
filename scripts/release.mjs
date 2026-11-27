@@ -11,7 +11,9 @@ export const registry = 'https://registry.npmjs.org';
 const stable = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 const required = ['package.json', 'README.md', 'LICENSE', 'dist/index.js', 'dist/index.d.ts',
   'dist/scheduler.js', 'dist/scheduler.d.ts', 'dist/tools.js', 'dist/tools.d.ts',
-  'dist/opencode-adapter.js', 'dist/opencode-adapter.d.ts'];
+  'dist/opencode-adapter.js', 'dist/opencode-adapter.d.ts',
+  ...['automations', 'automation-host', 'automation-management', 'automation-schedule', 'automation-store', 'automation-target', 'automation-tools']
+    .flatMap(name => [`dist/${name}.js`, `dist/${name}.d.ts`])];
 
 function assert(condition, message) { if (!condition) throw new Error(message); }
 export function validateMetadata(pkg, lock) {

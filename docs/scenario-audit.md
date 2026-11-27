@@ -1,5 +1,7 @@
 # Initial scheduler scenario audit
 
+The persistent automation delta is mapped separately in [Persistent automation scenario audit](automation-scenario-audit.md). Initial timer smoke results do not certify automation behavior.
+
 Audited on 2026-11-25 against the three delta specs in
 `openspec/changes/archive/2026-11-25-initial-scheduler/specs/` (the change is now archived).
 The synchronized contracts live in `openspec/specs/`. Test names below refer to `test/`.

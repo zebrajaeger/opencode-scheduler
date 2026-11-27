@@ -12,6 +12,19 @@ type Event241 = Context241["event"]["subscribe"] extends (...args: never[]) => A
 type NoInbox232 = Context232["session"] extends { inbox: unknown } ? false : true;
 type NoInbox241 = Context241["session"] extends { inbox: unknown } ? false : true;
 const noInbox: [NoInbox232, NoInbox241] = [true, true];
+type NoLog232 = Context232["session"] extends { log: unknown } ? false : true;
+type NoLog241 = Context241["session"] extends { log: unknown } ? false : true;
+const noLog: [NoLog232, NoLog241] = [true, true];
+function compileAutomationContract(ctx: Context232 | Context241) {
+  void ctx.storage.set("automations/contract", { schemaVersion: 1 });
+  void ctx.storage.get("automations/contract");
+  void ctx.storage.scan({ prefix: "automations/", limit: 100 });
+  void ctx.storage.remove("automations/contract");
+  void ctx.session.create({ id: "preassigned", title: "Report", location: { directory: "/project" },
+    agent: "build", model: { providerID: "test", id: "small" }, permissions: [{ action: "edit", resource: "*", effect: "deny" }] });
+  void ctx.session.context({ sessionID: "target" });
+  void ctx.session.list({ directory: "/project", project: "project", limit: 20 });
+}
 
 function compileHostContract(ctx: Context232 | Context241) {
   const sessionID = "test-session";
@@ -68,6 +81,8 @@ test("official message IDs are unique and plugin sessions do not expose inbox", 
   expect(first).not.toBe(SessionMessage.ID.create());
   expect(first).toMatch(/^msg_/);
   expect(noInbox).toEqual([true, true]);
+  expect(noLog).toEqual([true, true]);
+  expect(typeof compileAutomationContract).toBe("function");
   // Referencing the compile-only contract keeps it in the checked test source;
   // it must not execute network/session operations in this unit test.
   expect(typeof compileHostContract).toBe("function");

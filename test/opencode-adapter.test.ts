@@ -9,6 +9,9 @@ import { MissingSessionError } from "../src/scheduler.js";
 import { Agent } from "@opencode/schema/agent";
 import { Session } from "@opencode/schema/session";
 import { Tool } from "@opencode/schema/tool";
+import { memoryStorage, record } from "./automation-store.test.js";
+import { AutomationStore } from "../src/automation-store.js";
+import { hostFixture } from "./automation-host.test.js";
 
 afterEach(() => vi.useRealTimers());
 
@@ -31,13 +34,14 @@ function setupFixture(directory: string) {
   const tools: ReturnType<typeof import("../src/tools.js").timerTools> = [];
   const calls: string[] = [];
   const dispose = vi.fn(async () => {});
-  const session = sessionHostFixture();
+  const { session } = hostFixture();
   vi.mocked(session.get).mockImplementation(async input => sessionInfo(input.sessionID, directory));
   const ctx: SetupContext = {
     location: new Location.Info({ directory: AbsolutePath.make(directory),
       project: { id: Project.ID.make("p1"),
         directory: AbsolutePath.make(directory), canonical: AbsolutePath.make(directory) } }),
-    options: {}, session,
+    options: {}, session, storage: memoryStorage().storage,
+    agent: {} as SetupContext["agent"], model: {} as SetupContext["model"],
     event: { subscribe: options => {
       calls.push("subscribe");
       return { async *[Symbol.asyncIterator]() {
@@ -63,8 +67,8 @@ test("setup subscribes before registration and each location receives one indepe
   const closeFirst = await setup(first.ctx);
   const closeSecond = await setup(second.ctx);
   expect(first.calls).toEqual(["subscribe", "tools"]);
-  expect(first.tools).toHaveLength(5);
-  expect(second.tools).toHaveLength(5);
+  expect(first.tools).toHaveLength(12);
+  expect(second.tools).toHaveLength(12);
   await closeFirst(); await closeFirst(); await closeSecond();
   expect(first.dispose).toHaveBeenCalledTimes(1);
   expect(second.dispose).toHaveBeenCalledTimes(1);
@@ -124,4 +128,14 @@ test("unload closes event consumer and timeouts without awaiting pending host in
   await vi.advanceTimersByTimeAsync(0);
   expect(fixture.ctx.session.prompt).not.toHaveBeenCalled();
   expect(fixture.dispose).toHaveBeenCalledTimes(1);
+});
+
+test("unload preserves automation records and rejects late mutations on the retired instance", async () => {
+  vi.useFakeTimers(); vi.setSystemTime(0);
+  const fixture = setupFixture("/project"); const store = new AutomationStore(fixture.ctx.storage, record().owner); await store.load();
+  await store.mutate("a1", () => ({ record: { ...record(), enabled: false, pauseReason: "user-paused" }, result: undefined }));
+  const close = await setup(fixture.ctx); await close(); expect(vi.getTimerCount()).toBe(0);
+  const restored = new AutomationStore(fixture.ctx.storage, record().owner); await restored.load();
+  expect(restored.get("a1").pauseReason).toBe("user-paused");
+  store.close(); await expect(store.mutate("a1", previous => ({ record: previous!, result: undefined }))).rejects.toThrow("closed");
 });

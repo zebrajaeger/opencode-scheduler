@@ -52,5 +52,6 @@ jobs:
       - name: Run real isolated host suite
         env:
           SCHEDULER_REAL_HOST: '1'
+          SCHEDULER_EXPECTED_VERSION: ${{ matrix.opencode }}
           SCHEDULER_TEST_TMP: ${{ runner.temp }}
         run: npm run test:integration

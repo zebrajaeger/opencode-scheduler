@@ -56,6 +56,9 @@ test('nonpublishing CI preserves both isolated Windows host targets and bounded 
   expect(ci).toContain("SCHEDULER_REAL_HOST: '1'");
   expect(ci).toContain('SCHEDULER_TEST_TMP: ${{ runner.temp }}');
   expect(ci).toContain('SCHEDULER_OPENCODE_BIN=');
+  expect(ci).toContain('SCHEDULER_EXPECTED_VERSION: ${{ matrix.opencode }}');
+  const integration = JSON.parse(readFileSync('package.json', 'utf8')).scripts['test:integration'];
+  for (const file of ['test/real-host.test.ts', 'test/automation-real-host.test.ts', 'test/automation-acceptance-real-host.test.ts']) expect(integration).toContain(file);
   expect(ci).toContain('if ($LASTEXITCODE -ne 0)');
   expect(ci).toContain('timeout-minutes: 15');
 });

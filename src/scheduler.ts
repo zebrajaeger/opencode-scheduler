@@ -114,6 +114,38 @@ export class Scheduler {
   private readonly sessions = new Map<string, SessionState>();
   private host: Host | undefined;
   private eventStreamFailed = false;
+  private readonly externalReservations = new Map<string, Set<string>>();
+
+  reserveExternal(owner: Owner, runID: string, recovery = false, occurrence = this.now()): boolean {
+    if (this.closed || this.eventStreamFailed) return false;
+    let session = this.sessions.get(owner.sessionID);
+    if (!session) {
+      session = { owner: { ...owner }, state: "unknown", generation: 0, nextAllowedAt: 0 };
+      this.sessions.set(owner.sessionID, session);
+    }
+    if (!recovery && (session.reservation || this.externalReservations.has(owner.sessionID) || session.nextAllowedAt > this.now())) return false;
+    // External and timer deadlines use different callbacks. If the external
+    // callback wins the race, still give an older due timer its reservation.
+    // Recovery barriers must bypass this selection and be installed first.
+    if (!recovery && this.host && [...this.timers.values()].some(timer =>
+      sameOwner(timer.owner, owner) && timer.status !== "disabled" && timer.expiresAt > this.now() &&
+      timer.nextDueAt <= this.now() && timer.nextDueAt <= occurrence)) {
+      this.pulse();
+      return false;
+    }
+    const reservations = this.externalReservations.get(owner.sessionID) ?? new Set<string>();
+    reservations.add(runID); this.externalReservations.set(owner.sessionID, reservations); this.armExpiry();
+    return true;
+  }
+
+  releaseExternal(sessionID: string, runID: string, completed = true): void {
+    const reservations = this.externalReservations.get(sessionID);
+    if (!reservations?.delete(runID)) return;
+    if (!reservations.size) this.externalReservations.delete(sessionID);
+    const session = this.sessions.get(sessionID);
+    if (completed && session) session.nextAllowedAt = this.now() + this.minimumSpacingSeconds * 1000;
+    this.armExpiry();
+  }
 
   constructor(
     options: SchedulerOptions = {},
@@ -231,6 +263,7 @@ export class Scheduler {
     this.timers.clear();
     for (const session of this.sessions.values()) if (session.watchdog !== undefined) clearTimeout(session.watchdog);
     this.sessions.clear();
+    this.externalReservations.clear();
     if (this.expiryTimeout !== undefined) clearTimeout(this.expiryTimeout);
     this.expiryTimeout = undefined;
   }
@@ -249,7 +282,7 @@ export class Scheduler {
       next = Math.min(next, timer.expiresAt);
       if (!this.host || timer.status === "disabled") continue;
       const session = this.sessions.get(timer.owner.sessionID);
-      if (!session || session.reservation) continue;
+      if (!session || session.reservation || this.externalReservations.has(timer.owner.sessionID)) continue;
       const due = Math.max(timer.nextDueAt, session.nextAllowedAt);
       next = Math.min(next, due > this.now() ? due : this.now() + this.minimumSpacingSeconds * 1000);
     }
@@ -312,7 +345,7 @@ export class Scheduler {
       .sort((a, b) => a.nextDueAt - b.nextDueAt || a.createdAt - b.createdAt || a.id.localeCompare(b.id));
     for (const timer of due) {
       const session = this.sessions.get(timer.owner.sessionID)!;
-      if (session.reservation || session.nextAllowedAt > this.now()) { if (timer.status !== "in-flight") timer.status = "deferred"; continue; }
+      if (session.reservation || this.externalReservations.has(timer.owner.sessionID) || session.nextAllowedAt > this.now()) { if (timer.status !== "in-flight") timer.status = "deferred"; continue; }
       const reservation: Reservation = {
         token: {}, timerId: timer.id, messageId: this.host.messageId(), revision: timer.revision,
         phase: "checking", accepted: false, delivered: false, terminal: false, cancelled: false,

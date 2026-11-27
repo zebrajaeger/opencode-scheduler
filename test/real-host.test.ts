@@ -18,6 +18,7 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
   let callSequence = 0;
   const handled = new Set<string>();
   const requests: { url: string | undefined; body: unknown }[] = [];
+  let automationHoldSeen = false;
   const mock = createServer(async (request, response) => {
     let raw = ""; for await (const chunk of request) raw += chunk;
     const body = JSON.parse(raw || "{}");
@@ -28,6 +29,13 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
     let delta: Record<string, unknown> = { content: "Scheduler test response" };
     let reason = "stop";
     const marker = typeof last?.content === "string" ? last.content : "";
+    if (last?.role === "user" && marker === "AUTOMATION_HOLD") {
+      automationHoldSeen = true;
+      // Keep the isolated report active until its private host is terminated.
+      // This request is intentionally unfinished; no unrelated service is used.
+      request.on("close", () => {});
+      return;
+    }
     const toolCall = (name: string, args: unknown, index = 0) => ({ index, id: `call_${++callSequence}`, type: "function", function: { name, arguments: JSON.stringify(args) } });
     if (last?.role === "user" && marker.startsWith("CONTROL:") && !handled.has(marker)) {
       handled.add(marker); reason = "tool_calls";
@@ -183,6 +191,49 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
     const finalHistory = await readHistory(other);
     expect(finalHistory.filter((message: any) => message.type === "user" && /^(?:UPDATED_|RELOAD_)?MUST_NOT_RUN$/.test(message.text))).toHaveLength(0);
     await writeFile(path.join(root, "lifecycle-history.json"), JSON.stringify({ first: await readHistory(sessionID), second: finalHistory, interrupted: await readHistory(interruptSession) }, null, 2));
+
+    // Durable automation integration uses a management chat separate from its
+    // report target, so a recovered unresolved report cannot block inspection.
+    const managerID = (await api("/api/session", { location: { directory: project }, title: "Automation manager" })).data.id;
+    const reportID = (await api("/api/session", { location: { directory: project }, title: "Automation report" })).data.id;
+    const automation = resultFor(await control(managerID, [{ name: "automation_create", args: {
+      prompt: "AUTOMATION_REPORT", label: "Durable test", schedule: { kind: "interval", intervalSeconds: 30 },
+      target: { kind: "existing", sessionID: reportID },
+    } }]), "automation_create");
+    await new Promise(resolve => setTimeout(resolve, 32_000)); await waitIdle(reportID);
+    const completed = resultFor(await control(managerID, [{ name: "automation_list", args: {} }]), "automation_list").automations.find((item: any) => item.id === automation.id);
+    expect(completed.lastOutcome).toBe("succeeded"); expect(completed.acceptedRunCount).toBeGreaterThanOrEqual(1);
+    await control(managerID, [{ name: "automation_pause", args: { automationId: automation.id } }]);
+    await control(managerID, [{ name: "automation_update", args: { automationId: automation.id, prompt: "PERSISTED_UPDATE" } }]);
+    const restart = async () => {
+      const old = server!; old.kill(); if (old.exitCode === null) await once(old, "exit");
+      output = "";
+      server = spawn(binary, ["serve", "--hostname", "127.0.0.1", "--port", "0"], { cwd: project, env, stdio: ["ignore", "pipe", "pipe"] });
+      server.stdout?.on("data", chunk => { output += String(chunk); }); server.stderr?.on("data", chunk => { output += String(chunk); });
+      const ready = Date.now() + 90_000;
+      while (Date.now() < ready) {
+        const url = output.match(/http:\/\/127\.0\.0\.1:\d+/)?.[0];
+        if (url) { origin = url; return; }
+        if (server.exitCode !== null) throw new Error(`Restart failed: ${output.slice(-3000)}`);
+        await new Promise(resolve => setTimeout(resolve, 100));
+      }
+      throw new Error("Isolated restart did not become ready");
+    };
+    await restart();
+    const persisted = resultFor(await control(managerID, [{ name: "automation_list", args: {} }]), "automation_list").automations.find((item: any) => item.id === automation.id);
+    expect(persisted).toMatchObject({ enabled: false, pauseReason: "user-paused", prompt: "PERSISTED_UPDATE", lastOutcome: "succeeded" });
+    expect(resultFor(await control(managerID, [{ name: "timer_list", args: {} }]), "timer_list")).toEqual([]);
+    const held = resultFor(await control(managerID, [{ name: "automation_create", args: {
+      prompt: "AUTOMATION_HOLD", schedule: { kind: "interval", intervalSeconds: 30 }, target: { kind: "existing", sessionID: reportID },
+    } }]), "automation_create");
+    const heldDeadline = Date.now() + 65_000;
+    while (!automationHoldSeen && Date.now() < heldDeadline) await new Promise(resolve => setTimeout(resolve, 200));
+    expect(automationHoldSeen).toBe(true);
+    await restart();
+    const recovered = resultFor(await control(managerID, [{ name: "automation_list", args: {} }]), "automation_list").automations.find((item: any) => item.id === held.id);
+    expect(recovered.runState).toBe("unresolved");
+    expect((await readHistory(reportID)).filter((message: any) => message.type === "user" && message.text === "AUTOMATION_HOLD")).toHaveLength(1);
+    await writeFile(path.join(root, "automation-evidence.json"), JSON.stringify({ completed, persisted, recovered }, null, 2));
   } finally {
     // Only our child process and loopback mock are stopped. Preserve isolated
     // logs/data on disk for debugging; never recursively remove broad paths.
@@ -190,4 +241,4 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
     await writeFile(path.join(root, "requests.json"), JSON.stringify(requests, null, 2));
     server?.kill(); mock.closeAllConnections(); await new Promise<void>(resolve => mock.close(() => resolve()));
   }
-}, 360_000);
+}, 600_000);

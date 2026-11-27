@@ -61,7 +61,7 @@ authorize account setup, package publication or pushing release tags.
    within two days of configuration. If it expires, delete/recreate the
    configuration when ready. A workflow filename/owner mismatch fails closed;
    never "fix" it by adding NPM_TOKEN or NODE_AUTH_TOKEN.
-6. Restrict release tag creation through repository rules and protect master.
+6. Restrict release tag creation through repository rules and protect main.
    OIDC is not a replacement for controlling who can modify tagged workflows.
 
 The first automated version must be new: if bootstrap published 0.1.0, use a
@@ -78,22 +78,23 @@ tagging is performed automatically.
    installs it with scripts disabled in an isolated fixture, checks its ESM
    import and records SHA-512 integrity in `.release-artifacts/metadata.json`.
    This directory is ignored and is not a publishing credential store.
-3. Commit the intended changes to master and obtain a successful nonpublishing
+3. Commit the intended changes to main and obtain a successful nonpublishing
    CI run, including the two Windows host targets, before releasing.
 4. With explicit publication approval, create and push a canonical stable tag
-   `vX.Y.Z` matching all package/lockfile versions at the selected master commit.
+   `vX.Y.Z` matching all package/lockfile versions at the selected main commit.
    Both lightweight and annotated tags are supported. Do not retarget release
    tags. Tag pushes start public publication; ordinary branch pushes/PRs do not.
 
 ## Workflow boundaries
 
-`ci.yml` validates pull requests and master changes without publishing identity.
+`ci.yml` validates pull requests and main changes without publishing identity.
 Its Windows matrix explicitly installs OpenCode 2.3.2/2.4.1 into RUNNER_TEMP and
-runs the existing loopback-model isolated host suite. No actual model credential
-is used. Its Linux package check is a build/import check, not an additional
+runs the timer/lifecycle, persistent automation restart, and full automation
+acceptance suites with `SCHEDULER_EXPECTED_VERSION` asserted. No actual model
+credential is used. Its Linux package check is a build/import check, not an additional
 operating-system support claim.
 
-`release.yml` validates the stable tag, metadata and ancestry from fetched master
+`release.yml` validates the stable tag, metadata and ancestry from fetched main
 before installing dependencies. The validation job runs local gates and creates
 the archive. Only the archive and nonsecret metadata cross the artifact handoff.
 The publishing job installs no project dependencies and runs no package scripts;

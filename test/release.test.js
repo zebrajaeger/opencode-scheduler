@@ -12,7 +12,9 @@ const lock = JSON.parse(readFileSync('package-lock.json', 'utf8'));
 const temporary = process.env.RUNNER_TEMP ?? (process.platform === 'win32'
   ? join(homedir(), 'AppData/Local/Temp/opencode') : tmpdir());
 const required = ['dist/index.js', 'dist/index.d.ts', 'dist/scheduler.js', 'dist/scheduler.d.ts',
-  'dist/tools.js', 'dist/tools.d.ts', 'dist/opencode-adapter.js', 'dist/opencode-adapter.d.ts'];
+  'dist/tools.js', 'dist/tools.d.ts', 'dist/opencode-adapter.js', 'dist/opencode-adapter.d.ts',
+  ...['automations', 'automation-host', 'automation-management', 'automation-schedule', 'automation-store', 'automation-target', 'automation-tools']
+    .flatMap(name => [`dist/${name}.js`, `dist/${name}.d.ts`])];
 function files() {
   return new Map([['package.json', Buffer.from(JSON.stringify(pkg))], ['README.md', Buffer.from('Readme')],
     ['LICENSE', readFileSync('LICENSE')], ...required.map(name => [name, Buffer.from('export default {};')])]);

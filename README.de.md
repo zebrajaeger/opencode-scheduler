@@ -33,7 +33,7 @@ Für eine bestimmte veröffentlichte Version:
 
 ```json
 {
-  "plugins": ["@zebrajaeger/opencode-scheduler@0.1.3"]
+  "plugins": ["@zebrajaeger/opencode-scheduler@0.2.0"]
 }
 ```
 
@@ -75,7 +75,7 @@ Bitte den Agenten in normaler Sprache, beispielsweise:
 - „Ändere das Prüfintervall auf zehn Minuten.“
 - „Stoppe diesen Timer.“ / „Stoppe alle Timer in dieser Sitzung.“
 
-Es sind keine zusätzlichen AGENTS.md-Anweisungen oder Slash-Befehle nötig. Der Server registriert fünf Tools:
+Es sind keine zusätzlichen AGENTS.md-Anweisungen oder Slash-Befehle nötig. Temporäres Monitoring verwendet diese fünf Tools:
 
 | Tool | Aufgabe |
 | --- | --- |
@@ -91,11 +91,37 @@ Eine reine Intervalländerung verlängert die Laufzeit **nicht**. Auch eine expl
 
 Die Tools liefern JSON mit `ok` und `result`, bei Fehlern `ok: false` und `error` mit stabilem `code` und begrenzter `message`. Die Liste zeigt Zeitplan, Ablauf, Status (`scheduled`, `deferred`, `in-flight` oder deaktiviert), angenommene Läufe und den letzten Fehler. Ein angenommener Lauf bedeutet nicht, dass die nachgelagerte Aufgabe erfolgreich abgeschlossen wurde.
 
+### Dauerhafte Automationen
+
+Version **0.2.0** ergänzt dauerhafte Abläufe neben temporären Timern. Die Funktion ist **noch nicht im bereits veröffentlichten Paket 0.1.3 enthalten**; verwende 0.2.0, sobald es auf npm verfügbar ist, oder während der Veröffentlichung ein lokal gebautes Paket.
+
+> „Prüfe jeden Werktag um 9 Uhr Europe/Berlin meine zugeordneten offenen Pull Requests und liste direkte Links auf. Verwende einen neuen Chat namens ‚Meine Pull Requests‘.“
+
+> „Prüfe alle 30 Minuten den Deployment-Status in dem Chat, wo das Deployment läuft.“
+
+| | Temporärer Timer | Dauerhafte Automation |
+| --- | --- | --- |
+| Laufzeit | Standardmäßig eine Stunde | Bis zum Löschen |
+| Neustart | Verloren | Definition und Pausenzustand bleiben |
+| Ziel | Nur aufrufende Sitzung | Expliziter vorhandener/aktueller Chat, wiederverwendeter neuer Chat oder neuer Chat pro Lauf |
+| Lauf abbrechen | Stoppt Sitzungstimer | Erhält den gespeicherten Zeitplan |
+| Während Inaktivität verpasst | Keine Wiederherstellung | Standardmäßig überspringen; ausdrücklich `catch-up-once` |
+
+Tools: `automation_create`, `automation_list`, `automation_update`, `automation_pause`, `automation_resume`, `automation_remove` sowie `automation_targets` für Zielchat-Kandidaten. Jeder Chat im zugehörigen Projekt/Plugin-Standort kann die Automationen verwalten; projekt-/worktreeübergreifende Ziele und Koordination mehrerer Server sind nicht unterstützt.
+
+Erstellung benötigt `prompt`, `schedule` und `target`. Intervalle verwenden `{ "kind": "interval", "intervalSeconds": 1800 }`. Kalenderpläne verwenden `{ "kind": "cron", "expression": "0 9 * * 1-5", "timeZone": "Europe/Berlin" }`: fünf numerische Felder mit Listen/Bereichen/Schrittweiten, ohne Sekunden oder Cron-Erweiterungen. Die IANA-Zeitzone ausdrücklich angeben oder klären. Nicht existente Ortszeiten werden übersprungen, doppelte lokale Minuten nur beim ersten Auftreten ausgeführt. Intervalle behalten ihren ursprünglichen Anker; Zeitplanänderungen setzen ihn neu.
+
+Zielmodi: `current` („hier“), `existing` mit aufgelöster `sessionID`, `new-reuse` („im neuen Chat“) und ausdrücklich `new-each-run` („jedes Mal ein neuer Chat“). Beschriebene Ziele werden einmal eindeutig aufgelöst; bei Mehrdeutigkeit fragt der Agent nach. Umbenennen, Navigation und Forks ändern die Bindung nicht. Löschen oder Verschieben des Ziels pausiert den Ablauf, ohne einen stillen Ersatzchat anzulegen. Neu zuordnen und ausdrücklich fortsetzen repariert ihn. Bestehende Chats behalten ihren Kontext; neue Chats übernehmen gespeicherte Agent-/Modellwahl und Berechtigungen, nicht den gesamten Verlauf.
+
+Definitionen liegen im offiziellen Plugin-Speicher, **ohne eigenen Dienst**. Ausführung braucht den laufenden OpenCode-Server **und den aktiven zugehörigen Plugin-Standort**; ein geschlossenes UI-Fenster bedeutet nicht zwingend Serverende. Standard `missedPolicy: "skip"` wartet nach dem Start auf den nächsten zukünftigen Termin. Nur ausdrücklich gewünschtes `catch-up-once` holt verpasste Termine mit einem aktuellen Check nach. Bei belegter Sitzung oder Standby eines geladenen Runtime werden Termine zu einem fälligen Check zusammengefasst. Timer und Automationen teilen Sitzungssperre und Mindestabstand.
+
+Pause/Löschen verhindert neue Übergaben, zieht bereits angenommenes Input aber nicht zurück. Ausführungsfehler pausieren den Ablauf. Nach einem Neustart bleibt ein nicht beweisbar abgeschlossener Auftrag sichtbar `unresolved`, möglicherweise dauerhaft; ein inaktiver Chat oder eine Nachricht im Verlauf beweist keinen Abschluss. Fortsetzen, Neu-Zuordnen und Löschen umgehen diese Sperre nicht. Tool-Freigaben und Anbieterzugangsdaten bleiben für unbeaufsichtigte PR-Prüfungen nötig; der Scheduler besitzt keine eigene GitHub-Integration und erteilt keine automatische Genehmigung.
+
 <a id="de-kompatibilitaet"></a>
 ### Kompatibilität
 
-- **OpenCode 2.3.2 und 2.4.1:** API-Verträge und isolierte reale Servertests auf Windows x64 verifiziert, auch mit dem veröffentlichten npm-Paket 0.1.1.
-- **OpenCode Web/Server 2.4.1 und OpenChamber Web 2.8.0:** interaktive Smoke-Checks auf Windows x64 bestanden.
+- **OpenCode 2.3.2 und 2.4.1, Windows x64:** Timer-API-/Servertests bestanden, auch mit dem veröffentlichten npm-Paket 0.1.1. Persistente Automationen in 0.2.0 bestehen SDK-Verträge sowie isolierte Neustart-/Abnahmematrizen auf beiden festgelegten Versionen; sie sind nicht Teil des veröffentlichten Pakets 0.1.3.
+- **OpenCode Web/Server 2.4.1 und OpenChamber Web 2.8.0, Windows x64:** Timer-Smokes und die gesonderte A01–A12-Automation-Fixture-Matrix bestanden. Fixtures bestätigen weder beliebige Sprachinterpretation noch echten PR-Provider-Zugriff; die [Automation-UI-Nachweise (Englisch)](docs/automation-ui-verification.md) dokumentieren die Grenzen.
 - **OpenCode V1, andere Versionen und andere Betriebssysteme:** nicht verifiziert.
 - Deklarierte Node-Anforderung: **Node.js >=22**. Das Node-Badge zeigt den Paket-Enginebereich, keine vollständige Testmatrix.
 
@@ -105,11 +131,11 @@ Die Tools liefern JSON mit `ok` und `result`, bei Fehlern `ok: false` und `error
 ### Grenzen und Sicherheit
 
 - **Fälligkeit ist keine garantierte Antwortzeit.** Aktive Agentenarbeit und Vordergrundtools verzögern Timer. Echte Hintergrundprozesse blockieren eine ansonsten inaktive Sitzung nicht, sobald ihr startendes Tool zurückgekehrt ist. Der Agent muss ihren tatsächlichen Status mit seinen normalen Tools prüfen; verstrichene Zeit allein ist kein Nachweis.
-- Prompts gehen mit `delivery: "queue"` an die bestehende Sitzung. Verlauf, Agent, Modell, Berechtigungen und Arbeitskontext bleiben erhalten. Keine Ersatzsitzung, kein eigener LLM-Aufruf und keine Unterbrechung fremder Arbeit.
+- Temporäre Timer-Prompts gehen mit `delivery: "queue"` an die bestehende Sitzung. Verlauf, Agent, Modell, Berechtigungen und Arbeitskontext bleiben erhalten. Keine Ersatzsitzung, kein eigener LLM-Aufruf und keine Unterbrechung fremder Arbeit. Automationen verwenden dieselbe Zustellung im ausdrücklich gewählten Zielchat.
 - Pro Sitzung ist höchstens eine Scheduler-Übergabe wartend oder in Ausführung. Die Sperre bleibt nach Annahme bis zur zugeordneten Zustellung und Beendigung bestehen. Nach jedem abgeschlossenen Check gilt der Mindestabstand; andere Sitzungen laufen unabhängig weiter.
 - Wiederholungen haben feste Zeitfenster. Verpasste Intervalle werden zu einem Check zusammengefasst, nicht als Nachholserie abgespielt – auch nach langer Arbeit oder Standby. Der nächste Termin liegt in der Zukunft; abgelaufene Timer werden nicht neu gestartet.
 - Übergabe- oder Ausführungsfehler deaktivieren den Timer statt Endlosschleifen auszulösen. Eine gültige explizite Änderung kann einen geklärten wiederkehrenden Timer reaktivieren. Unklare oder hängende Übergaben halten die Sitzungssperre konservativ; Stoppen und Neuanlegen umgehen sie nicht. Ein bereits eingereichter Einmal-Timer kann nicht neu aktiviert werden. Bei Ausfall des Event-Streams wird nicht auf Verdacht ausgeführt.
-- **Nur im Arbeitsspeicher:** Unload, Reload, Serverneustart oder Prozessende verlieren alle Timer. Keine Wiederherstellungsdatei, Datenbank oder eigener Hintergrunddienst. Beenden räumt Timeouts, Abonnements und Registrierungen auf, ohne auf laufende Agentenarbeit zu warten.
+- **Nur im Arbeitsspeicher (temporäre Timer):** Unload, Reload, Serverneustart oder Prozessende verlieren alle Timer. Automation-Definitionen und Recovery liegen im offiziellen persistenten Plugin-Speicher; keine der Funktionen erzeugt einen eigenen Hintergrunddienst. Beenden räumt Timeouts, Abonnements und Registrierungen auf, ohne auf laufende Agentenarbeit zu warten.
 - `session.execution.interrupted` stoppt alle Timer der unterbrochenen Sitzung. Eine normale Antwort oder der Wechsel zu einem anderen Chat tut das nicht. Nicht angezeigte Sitzungen können weiterlaufen. Löschen entfernt ihre Timer; beim Umzug in ein anderes Projekt/Worktree müssen sie am Ziel neu erstellt werden. Forks erben keine Timer.
 - **Berechtigungen bleiben bestehen.** Ein geplanter Prompt kann an einer nötigen Tool-Freigabe warten. Das Plugin erteilt keine automatische Genehmigung; unbeaufsichtigte Planung garantiert keine unbeaufsichtigte Ausführung.
 - **Bereits angenommenes OpenCode-Input lässt sich nicht zuverlässig zurückziehen.** Stop, Ablauf, Unterbrechung und Unload verhindern neue lokale Übergaben, aber ein bereits eingereichter Prompt kann trotzdem laufen, auch nach Reload. Das Plugin unterbricht nicht die ganze Sitzung, um einen Monitoring-Prompt zu entfernen.

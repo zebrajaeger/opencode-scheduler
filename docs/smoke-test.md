@@ -1,6 +1,32 @@
 # Interactive smoke test: OpenCode and OpenChamber
 
-Status: completed across the recorded runs on 2026-11-25 with OpenCode Web/server 2.4.1 and OpenChamber Web 2.8.0 on Windows x64. The earlier partial record is retained below; the final continuation closes its gaps. The deterministic real-server suite also passed on OpenCode 2.3.2 and 2.4.1; it does not replace these UI/agent-language checks.
+## Persistent automation smoke contract (A01–A12)
+
+**Recorded fixture pass (2026-11-27):** native OpenCode web/server **2.4.1** and
+OpenChamber **2.8.0**, Windows x64. All twelve procedure items have recorded
+client observations; [per-client automation evidence](automation-ui-verification.md)
+lists screenshots, transcripts, startup/recovery assertions and cleanup. This
+certifies the stated deterministic fixtures, not arbitrary LLM interpretation,
+every internal scenario/cross-product, a clean client console or live providers.
+
+Run these separately in both clients against a **private supported OpenCode server** with the locally built package, unique project/config/state directories, and safe fixture model data. Never install into or restart a shared server. Earlier timer results below do not certify these checks. Record each check as passed, failed, or unverified per client and version; a written procedure is not an executed check.
+
+- **A01 — Discoverability and weekday request.** Ask for a weekday 09:00 Europe/Berlin PR-link report. Inspect `automation_create`: five-field `0 9 * * 1-5`, explicit zone/target, default `skip`. List seven automation and five unchanged timer tools. For observable output use a separate >=30-second interval fixture; this does not certify wall-clock cron timing (unit fixtures do).
+- **A02 — Selected chat and navigation.** Create control, report, and unrelated chats. Bind the report by ID, navigate elsewhere, and observe the fixture link only in the report chat. Rename it and verify the bound ID does not change; other chats are neither interrupted nor given report input.
+- **A03 — Described destination.** Ask for monitoring in “the deployment chat.” With one candidate bind its ID; with two plausible candidates verify clarification before any new definition/write. Reject foreign project/location targets without revealing their contents.
+- **A04 — Busy and shared gate.** Hold report execution over two slots, create a temporary timer for that same chat, then release. Verify no overlap, one coalesced due check, minimum cooldown, and independent progress in another chat. Fresh-chat retargeting must not bypass an outstanding automation run.
+- **A05 — New-chat policies.** “In a new chat” creates one reusable chat. Two occurrences reuse it, including after restart. “Every time a new chat” creates distinct chats only for admitted runs; skipped offline slots create none. Check saved agent/model/restrictions and no copied full history.
+- **A06 — Private restart/misfire.** Pause and restart the private server, not merely the UI. Verify definition/update/pause/outcome survives and temporary timers disappear. In a separate resolved routine stop the server over several interval slots: default `skip` yields no immediate historical replay; explicit `catch-up-once` yields one current-state check. Verify anchored future slots. Remove test routines after observing the result.
+- **A07 — Interruption and failure.** Use the client Stop control during an automated report, then during unrelated foreground work. Both preserve the durable routine; session timers stop. Verify a later nominal report still occurs. A fixture execution failure pauses with a bounded diagnostic and no immediate retry; resume requires explicit action.
+- **A08 — Ambiguous acceptance recovery/removal.** Stop the private process after report acceptance before proven completion; restart and inspect one unchanged report plus `unresolved`. Resume/retarget/remove cannot bypass the old session barrier. Removal stops future admissions but warns that already admitted input can still run. Never clear stored recovery data to force a pass.
+- **A09 — Stable identity and target loss.** Fork/rename the target and reuse its title: schedules stay bound to the original ID. Delete or move the private target; verify persistent `target-unavailable`, no replacement chat, and explicit retarget plus resume repair. Distinguish transient inspection failure from deletion.
+- **A10 — Location/UI lifetime.** Close only the private client's UI while its server/location stays active: verify no claim that UI closure stopped scheduling. Unload the private location/server and verify no new local admission; reload uses stored definitions and conservative barriers. Do not unload a production location.
+- **A11 — Approval policy.** With an isolated read-only fixture tool configured to require approval, verify an automated prompt waits for the same approval instead of automatically granting it. Deny the fixture request safely; verify no real PR lookup or credential use. Repeat for a newly created restricted chat. A hard-coded model response containing a link is not evidence that tool approval was exercised.
+- **A12 — Visible evidence and cleanup.** Save client/version, private server address/root, automation/target/message IDs, transcript/link screenshots, outcomes, and pending approvals. Mark unavailable UI paths unverified. Pause/remove all resolved test routines; stop only owned child processes. No publication or live provider claims.
+
+See [automation scenario mapping](automation-scenario-audit.md) and [verification status](verification.md) for the evidence boundary.
+
+Temporary-timer status: completed across the recorded runs on 2026-11-25 with OpenCode Web/server 2.4.1 and OpenChamber Web 2.8.0 on Windows x64. The earlier partial record is retained below; the final continuation closes its timer gaps. Automation checks A01–A12 above have separate execution status in `verification.md`. The deterministic real-server suite does not replace UI/agent-language checks.
 
 ## Safety and prerequisites
 

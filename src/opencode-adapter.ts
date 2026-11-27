@@ -2,6 +2,10 @@ import type { Plugin } from "@opencode/plugin";
 import { SessionMessage } from "@opencode/schema/session-message";
 import { MissingSessionError, Scheduler, type Host, type HostEvent, type Owner } from "./scheduler.js";
 import { timerTools } from "./tools.js";
+import { AutomationHost, selectionValidator, type AutomationSession } from "./automation-host.js";
+import { AutomationStore } from "./automation-store.js";
+import { Automations } from "./automations.js";
+import { automationTools } from "./automation-tools.js";
 
 export function createHost(ctx: { session: Pick<Plugin.Context["session"], "get" | "prompt"> }): Host {
   return {
@@ -52,7 +56,10 @@ export function normalizeEvent(event: Event): HostEvent | undefined {
 }
 
 export type SetupContext = Pick<Plugin.Context, "options" | "location" | "event"> & {
-  session: Pick<Plugin.Context["session"], "get" | "prompt">;
+  session: AutomationSession;
+  storage: Plugin.Context["storage"];
+  agent: Plugin.Context["agent"];
+  model: Plugin.Context["model"];
   tool: Pick<Plugin.Context["tool"], "transform">;
 };
 
@@ -60,6 +67,7 @@ export async function setup(ctx: SetupContext): Promise<() => Promise<void>> {
   const scheduler = new Scheduler(ctx.options);
   const controller = new AbortController();
   let closed = false;
+  let automations: Automations | undefined;
   const events = ctx.event.subscribe({ types: [
     "session.deleted", "session.execution.started", "session.execution.interrupted",
     "session.execution.succeeded", "session.execution.failed", "session.status",
@@ -70,11 +78,15 @@ export async function setup(ctx: SetupContext): Promise<() => Promise<void>> {
       for await (const event of events) {
         if (closed) break;
         const normalized = normalizeEvent(event);
-        if (normalized) scheduler.event(normalized);
+        if (normalized) {
+          scheduler.event(normalized);
+          if (automations) await automations.event(normalized);
+        }
       }
-      if (!closed) scheduler.failEventStream("Event subscription ended; timer dispatch disabled");
+      if (!closed) { scheduler.failEventStream("Event subscription ended; timer dispatch disabled"); automations?.failEventStream(); }
     } catch (error) {
       if (!closed) scheduler.failEventStream(`Event subscription failed: ${String(error).slice(0, 300)}`);
+      if (!closed) automations?.failEventStream();
     }
   })();
   scheduler.connect(createHost(ctx));
@@ -83,17 +95,21 @@ export async function setup(ctx: SetupContext): Promise<() => Promise<void>> {
     ...(ctx.location.workspaceID !== undefined ? { workspaceID: ctx.location.workspaceID } : {}),
   };
   try {
+    const store = new AutomationStore(ctx.storage, location);
+    await store.load();
+    automations = new Automations(store, new AutomationHost(ctx.session, location, selectionValidator(ctx, location)), scheduler);
+    await automations.activate();
     const registration = await ctx.tool.transform(editor => {
       for (const tool of timerTools(scheduler, location)) editor.add(tool);
+      for (const tool of automationTools(automations!)) editor.add(tool);
     });
     return async () => {
       if (closed) return;
-      closed = true; scheduler.close(); controller.abort();
-      try { await registration.dispose(); } finally { await consume; }
+      closed = true; automations?.close(); scheduler.close(); controller.abort();
+      await registration.dispose();
     };
   } catch (error) {
-    closed = true; scheduler.close(); controller.abort();
-    await consume;
+    closed = true; automations?.close(); scheduler.close(); controller.abort();
     throw error;
   }
 }
