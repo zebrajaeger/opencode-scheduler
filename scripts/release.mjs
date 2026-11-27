@@ -82,7 +82,8 @@ export function validateFiles(files, version) {
     /https?:\/\/[^\s/@:]+:[^\s/@]+@/];
   for (const [name, data] of files) {
     const permitted = ['package.json', 'README.md', 'README.de.md', 'LICENSE'].includes(name)
-      || /^dist\/[a-z-]+\.(?:js|d\.ts)$/.test(name) || /^docs\/[a-z-]+\.md$/.test(name) || name === 'docs/banner.png';
+      || /^dist\/[a-z-]+\.(?:js|d\.ts)$/.test(name) || /^docs\/[a-z-]+\.md$/.test(name) || name === 'docs/banner.png'
+      || ['docs/upstream/persist-events-proposal.md', 'docs/upstream/opencode-v2.4.2-persist-events.patch'].includes(name);
     assert(permitted, `Forbidden package artifact: ${name}`);
     if (name === 'docs/banner.png') {
       assert(data.length >= 24 && data.subarray(0, 8).equals(Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]))

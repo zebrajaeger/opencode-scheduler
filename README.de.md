@@ -14,6 +14,100 @@ Repository: [zebrajaeger/opencode-scheduler](https://github.com/zebrajaeger/open
 <a id="deutsch"></a>
 ## Deutsch
 
+### Orchestrierung: Entwicklungsvorschau
+
+Die ereignisgesteuerte Erweiterung ist noch nicht vollständig implementiert. Die
+bisherige Timer-Konfiguration und die fünf Timer-Werkzeuge bleiben unverändert.
+Verfügbar sind die Prüfung optionaler Einstellungen und die Diagnose
+`orchestration_status` sowie bei unterstütztem SQLite projektbezogene `session_find`,
+`session_read` und passive `session_send`. `task_update` und `signal_emit` veröffentlichen
+explizite Tasks/Ergebnisse und eigene Signale. `job_create`, `job_list` und `job_control`
+registrieren und prüfen persistente Jobs. Automatische projektinterne Job-Zustellung und
+aktive Queue-Prompts sind mit dauerhafter Orchestrierung freigeschaltet. Es bleibt eine
+Entwicklungsvorschau: bisherige Host-Qualifikation Windows x64/OpenCode 2.4.2, keine
+allgemeine Produktionszertifizierung.
+
+**Abnahmeblocker:** Dauerhafte native Ausführungstrigger sind im qualifizierten
+CLI-Host nicht verfügbar. OpenCode 2.4.2 speichert dort keine nativen Ereignispayloads;
+`log.synced` allein belegt keine Replay-Abdeckung. Die Registrierung solcher Trigger
+meldet `unsupported-capability`. Plugin-eigene Task-/Ergebnis-/Signal- und Zeitjobs
+bleiben verfügbar; unklare Annahmegates bleiben nach Neustart ohne hinreichende
+Belege gesperrt. Die verpflichtende native Replay-Abnahme ist **nicht abgeschlossen**.
+Details: `docs/native-replay-blocker.md`.
+
+Bei aktivierter Orchestrierung bleiben minimale Zustellungsdaten und die gemeinsame
+Zielsperre bereits eingereichter Timer-Prompts bis zur sicheren Klärung über Reloads
+erhalten. Timer-Definitionen verschwinden weiterhin; die Sicherheitsdaten stellen
+keinen Timer wieder her. Ohne Orchestrierung bleibt das bisherige Unload-Verhalten.
+
+Das optionale Plugin-Optionsobjekt `orchestration` unterstützt `enabled` (Standard false),
+eine stabile `instanceID`, ein absolutes lokales `dataDirectory` sowie optional `sdk`,
+`limits` und `retention`. Beispiel: `{"enabled":true,"instanceID":"local","dataDirectory":"C:/scheduler-data"}`.
+Alle Locations desselben Datenverzeichnisses müssen dieselben Richtlinien verwenden.
+`sdk` akzeptiert entweder eine HTTP-Loopback-`baseUrl` oder `discover: true`, dazu optional
+`tokenEnv` als Namen einer Umgebungsvariable, niemals einen direkten geheimen Wert.
+`orchestration_status` prüft konfigurierte SDK-Verbindungen bei Bedarf; nicht unterstützte
+Endpunkte werden abgelehnt.
+
+Grenzen lassen sich nur senken: 16 Bedingungen, 32 KiB JSON, 16 KiB Text, 64 KiB
+Aktivierung, 100 Aufgaben/Eigentümer, 1000/Projekt, 100 Postfacheinträge, 8 kausale
+Schritte, 20 Kettenaktivierungen und maximal sieben Tage Lebensdauer. Aufbewahrung:
+standardmäßig sieben Tage und 10.000 nicht referenzierte Einträge. Ungültige Vorschau-
+Einstellungen melden `invalid-input`, ohne alte Timer abzuschalten. Fehlendes SQLite
+meldet `unsupported-runtime`; nicht unterstützte Historie/Replay müssen
+`unsupported-capability` melden statt unzuverlässiger Live-Auswertung. Eine verfügbare
+SQLite-Laufzeit bedeutet noch keine einsatzbereiten dauerhaften Werkzeuge.
+Siehe [Laufzeitprüfung (Englisch)](docs/development.md).
+
+Bei „dem Reviewer“ sucht der Agent zuerst nach Titel/Projekt und fragt bei Mehrdeutigkeit
+nach. `session_read` kennzeichnet kompaktierten Kontext und bietet gespeicherte Tasks,
+Ergebnisse und Postfachdaten; vollständige Historie erfordert eine verifizierte SDK-Verbindung
+und meldet sonst `unsupported-capability`.
+Passives `session_send` speichert eine Nachricht mit Herkunft, ohne den Empfänger zu
+wecken oder eine Chat-Benachrichtigung anzuzeigen. Prompt-Modus speichert eine Outbox mit
+fester ID und verwendet Queue-Zustellung. Unklare Annahmen bleiben bis zur Klärung gesperrt
+und werden niemals blind erneut gesendet. Private Job-Definitionen werden nicht
+offengelegt; Inhalte anderer Sessions bleiben nicht vertrauenswürdige Daten.
+
+`task_update` erstellt produzenteneigene Tasks; Änderungen erfordern die erwartete
+Revision. `completed` erst veröffentlichen, wenn relevante Subagenten-/Hintergrundarbeit
+abgeschlossen ist. Das Ergebnis ist unveränderlich; spätere Idle-/Fehlerereignisse
+ziehen es nicht zurück. Bei verlorener Antwort denselben Veröffentlichungsschlüssel
+wiederholen. Korrekturen verwenden einen neuen Task/ein neues Ergebnis.
+Für frühe kritische Funde `signal_emit` mit `review.critical-finding` und begrenzten
+JSON-Daten verwenden, ohne das Review abzuschließen. Die Veröffentlichung allein
+weckt nur dann einen anderen Agenten, wenn ein passender Job aktivierende Zustellung verlangt.
+
+Job-Werkzeuge kehren sofort zurück, auch bei unfertigen Quellen oder beschäftigtem Ziel.
+`job_list` zeigt eigene Revisionen, Job-Zustand und zugehörige Run-Diagnosen (`pending`,
+`submitting`, `accepted`, `delivered`, `settled`, `uncertain` oder terminale Fehler).
+`job_control` benötigt diese Revision; Abbruch stoppt künftige Annahmen, nicht akzeptierte Arbeit.
+ALL benötigt jede festgelegte Quelle, ANY wählt einen deterministischen Treffer.
+Fachlichen Abschluss über `scheduler.task.completed` mit Produzent und Task festlegen,
+nicht über technisches Idle/Success. Zeitbedingungen verwenden absolute `dueAt` oder
+nominelle `intervalSeconds`; Wiederholungen benötigen neue Ereignisse oder einen Zeittakt.
+Für Status alle fünf Minuten bis Review-Abschluss: repeat-Modus, 300-Sekunden-Zeittakt
+und eine an den Review-Task gebundene `until`-Signalgruppe. IDs ermittelt der Agent per
+Suche; bei Mehrdeutigkeit fragt er nach. Registrierung meldet derzeit
+`automaticDispatchEnabled`: Dauerhafte Registrierung/Annahme bedeutet noch keinen Ausführungserfolg.
+
+Die fünf Zusammenarbeitswünsche verwenden Suche statt technischer IDs vom Benutzer:
+
+- „Warte auf das Review und aktualisiere danach die Spezifikation“: Review-Sitzung
+  suchen, veröffentlichten Task lesen und eine Ergebnisabhängigkeit registrieren.
+- „Melde kritische Funde sofort“: Abhängigkeit vom Fundsignal registrieren; der
+  Reviewer veröffentlicht den Fund, ohne seinen laufenden Review-Task abzuschließen.
+- „Starte die Tests, sobald beide Implementierungen fertig sind“: beide Tasks suchen
+  und ALL auf deren unveränderliche Abschlussergebnisse registrieren.
+- „Melde alle fünf Minuten den Status, bis das Review fertig ist“: wiederholenden
+  Zeitjob mit 300 Sekunden Intervall und Task-Abschluss als Stoppbedingung anlegen.
+- „Fasse alle aktuellen Reviewer zusammen“: gemeinte Reviewer auflösen und deren
+  Tasks bei Registrierung festhalten; spätere Reviewer werden nicht still ergänzt.
+
+Der Agent fragt nur bei echter Mehrdeutigkeit oder fehlendem Abschlussvertrag nach.
+Technischer Ausführungserfolg ist kein fachlicher Abschluss. Der
+[Szenarioaudit (Englisch)](docs/orchestration-acceptance-audit.md) nennt geprüfte Abdeckung und Lücken.
+
 Einmalige und wiederkehrende Prompts für OpenCode-Agenten – zeitlich begrenzt und immer in ihrer ursprünglichen Sitzung. Lass den Agenten später nach einem Container sehen oder regelmäßig einen Hintergrundtest prüfen, ohne die aktuelle Arbeit zu unterbrechen.
 
 [Installation](#de-installation) · [Konfiguration](#de-konfiguration) · [Beispiele und Tools](#de-tools) · [Kompatibilität](#de-kompatibilitaet) · [Grenzen und Sicherheit](#de-grenzen) · [Entwicklung](#de-entwicklung)

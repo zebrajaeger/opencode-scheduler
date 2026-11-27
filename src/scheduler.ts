@@ -46,6 +46,8 @@ export interface Host {
   inspect(owner: Owner): Promise<{ owner: Owner; state: "idle" | "busy" | "unknown" }>;
   prompt(owner: Owner, messageId: string, prompt: string, timerId: string): Promise<void>;
   messageId(): string;
+  acquire?(owner: Owner, messageId: string, contender: { id: string; expiresAt: number }): boolean;
+  finish?(owner: Owner, messageId: string): void;
 }
 
 export class MissingSessionError extends Error {}
@@ -340,6 +342,7 @@ export class Scheduler {
     }
     if (session.generation === generation) session.state = inspected.state;
     if (session.state !== "idle") { delete session.reservation; this.armExpiry(); return; }
+    if (host.acquire && !host.acquire(timer.owner, reservation.messageId, { id: `timer:${timer.id}`, expiresAt: timer.expiresAt })) { delete session.reservation; this.armExpiry(); return; }
     reservation.phase = "submitting";
     timer.status = "in-flight";
     session.watchdog = setTimeout(() => {
@@ -379,6 +382,7 @@ export class Scheduler {
 
   private finish(session: SessionState, reservation: Reservation): void {
     if (!this.current(session, reservation)) return;
+    this.host?.finish?.(session.owner, reservation.messageId);
     delete session.reservation;
     if (session.watchdog !== undefined) clearTimeout(session.watchdog);
     delete session.watchdog;

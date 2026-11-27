@@ -17,7 +17,10 @@
     "README.md",
     "README.de.md",
     "LICENSE",
-    "docs"
+    "docs/*.md",
+    "docs/banner.png",
+    "docs/upstream/persist-events-proposal.md",
+    "docs/upstream/opencode-v2.4.2-persist-events.patch"
   ],
   "repository": {
     "type": "git",
@@ -33,12 +36,13 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "test:integration": "vitest run test/real-host.test.ts",
+    "test:integration": "vitest run test/real-host.test.ts test/orchestration-real-host.test.ts test/sqlite-runtime.test.ts",
     "release:check": "node scripts/release.mjs pack",
     "release": "npm run release:check && npm publish .release-artifacts/package.tgz --access public --ignore-scripts --registry=https://registry.npmjs.org",
     "prepack": "npm run build"
   },
   "dependencies": {
+    "@opencode/client": "2.3.2",
     "@opencode/plugin": "2.3.2",
     "@opencode/schema": "2.3.2"
   },

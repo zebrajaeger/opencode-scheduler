@@ -33,11 +33,11 @@ Native durable event sources SHALL replay from per-source checkpoints and synchr
 - **THEN** the system uses supported current-state reconciliation and does not fabricate a replayed transition
 
 ### Requirement: Stable idempotent admission intent
-Every activating delivery SHALL persist one official OpenCode message ID and immutable payload before submission. Retries SHALL reuse that ID and payload against the same target. Duplicate firing evidence SHALL NOT create another logical delivery. The system SHALL promise idempotent admission only where the verified host contract supports it, not exactly-once agent effects.
+Every activating delivery SHALL persist one official OpenCode message ID and immutable payload before submission. Allowed retries SHALL reuse both. Unknown admission outcomes SHALL NOT be automatically resent: same-ID deduplication is not guaranteed after Inbox cancellation. Duplicate evidence SHALL NOT create another logical delivery. No exactly-once agent effects SHALL be promised.
 
 #### Scenario: Prompt accepted but response lost
 - **WHEN** OpenCode accepted a prompt and its API acknowledgement was lost
-- **THEN** recovery reconciles or retries using the original ID and cannot create a replacement ID for that delivery
+- **THEN** recovery reconciles using the original ID without resending; unknown remains uncertain and no replacement ID is created
 
 #### Scenario: Duplicate event delivery
 - **WHEN** one signal or native event is ingested repeatedly
@@ -66,11 +66,11 @@ The system SHALL distinguish admission, delivery, and host execution settlement 
 - **THEN** its run remains uncertain and no later scheduler prompt bypasses the unresolved target gate
 
 ### Requirement: Classified bounded failures
-New jobs SHALL distinguish transient transport/rate/server failures from permanent validation, scope, missing-session, and policy failures. Retrying transient admission SHALL use the fixed intent with capped backoff, attempts, and deadline. Execution failure SHALL NOT automatically replay business effects; recurring jobs SHALL pause by default with a diagnostic.
+New jobs SHALL distinguish proven non-admission failures from ambiguous outcomes and permanent validation, scope, missing-session, and policy failures. Only proven non-admission failures SHALL automatically retry with capped backoff, attempts, deadline, and the same intent. Unknown outcomes SHALL stay uncertain. Execution failure SHALL NOT replay business effects; recurring jobs SHALL pause by default.
 
 #### Scenario: Temporary server outage
 - **WHEN** submission receives a retryable transport or server error
-- **THEN** one intent remains pending for bounded same-ID retry and no immediate retry storm occurs
+- **THEN** a proven non-admission permits bounded same-ID retry; otherwise the intent becomes uncertain without an automatic resend
 
 #### Scenario: Target deleted or moved
 - **WHEN** pre-dispatch validation confirms deletion or a project/location mismatch

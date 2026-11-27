@@ -84,6 +84,8 @@ agent tools --> commands --> repository <------- runs + outbox
 
 Keep the existing timer facade and fixtures. Extract only admission arbitration, bounded clock wakeups, ownership checks, diagnostics, and normalization that both paths actually need. Legacy Maps remain ephemeral. Orchestration time jobs use the same evaluator/persistent repository as session and signal jobs. Do not force persistence or retry semantics onto old timer tools.
 
+Approved apply-time clarification: when durable orchestration is enabled, persist minimal admission evidence for legacy timer prompts (target, message ID, delivery/epoch observations and cooldown), not timer definitions or recurrence. Unload does not erase an unresolved shared target gate. Recovery reconciles it through supported SDK history; without that capability the gate remains conservative and inspectable. With orchestration disabled the legacy unload behavior is unchanged.
+
 A target gate serializes legacy timers and new jobs across location activations. It does not lock a session against users or unrelated plugins. Native `delivery: "queue"` is the final protection when a user starts work after the idle check. Do not hold a database transaction across a host request or wait for idle inside a tool.
 
 ### 3. Persistent SQLite with transactional single-writer semantics
@@ -129,6 +131,8 @@ Source failure policy is explicit: default `fail` makes the job fail on failed/c
 ### 6. Outbox, run observation, and errors
 
 Persist a message ID from `SessionMessage.ID.create()` and the exact envelope before submitting. Retrying an ambiguous timeout reuses both. Unique `(job, firing)` and `(delivery, target)` keys prevent duplicate admission intents. Manual messaging accepts a caller idempotency key scoped to authenticated caller/task; reuse with different content returns conflict.
+
+Approved apply-time correction based on `SessionInbox.projectCancelled`: cancellation removes the pending row, so OpenCode does not guarantee a permanent same-ID deduplication tombstone for cancelled input. Therefore an ambiguous timeout MUST NOT be automatically resent, even with the same ID. Replay may reconcile queued/delivered/cancelled; unknown remains uncertain. Automatic retry is limited to transport outcomes that prove no admission occurred. This correction supersedes the earlier ambiguous-timeout retry sentence and any broad same-ID retry assumption below.
 
 Before final submission recheck revision, cancellation, deadline, source stop condition, scope, target existence, limits, and target gate. Busy targets remain deferred; no repeated queue submissions. After acceptance, track matching inbox events and the enclosing execution epoch derived from durable started sequence. Host terminal events have no native run ID, so expose epoch correlation/coverage, not a fabricated exact prompt outcome. Reconcile restart from durable inbox/log evidence. If execution association is ambiguous, mark the run `uncertain` and keep the target gate conservative; do not silently release it or mark success.
 

@@ -3,7 +3,7 @@
 ## MODIFIED Requirements
 
 ### Requirement: In-memory lifetime
-All definitions, due state, and counters created through the five legacy timer tools SHALL exist only in memory. Plugin unload or server restart SHALL discard them without automatic restoration or background service creation. Opt-in orchestration jobs, including new time jobs, SHALL persist under the separate durable orchestration contract and SHALL NOT appear as restored legacy timers.
+All definitions, due state, and counters created through the five legacy timer tools SHALL exist only in memory and SHALL be discarded on unload without automatic restoration. With durable orchestration enabled, minimal evidence for already submitted timer prompts and shared target gates SHALL persist until safely reconciled. This SHALL NOT restore timer definitions. Opt-in durable time jobs SHALL remain separate from legacy timers.
 
 #### Scenario: Restart
 - **WHEN** the plugin or server restarts after timers were created
@@ -13,6 +13,10 @@ All definitions, due state, and counters created through the five legacy timer t
 #### Scenario: Persistent time job is separate
 - **WHEN** an agent explicitly creates a durable time job through the orchestration tools and the plugin restarts
 - **THEN** job inspection restores that job while timer_list remains limited to current in-memory timers
+
+#### Scenario: Unresolved legacy admission survives reload
+- **WHEN** a timer prompt may already have been admitted and durable orchestration is enabled during reload
+- **THEN** its timer definition is discarded but its message ID and unresolved shared target gate remain until evidence safely reconciles them
 
 ### Requirement: Reliable cleanup
 On unload the plugin SHALL mark itself closed, discard legacy timers, clear native timeouts, terminate subscriptions, dispose registrations, and stop scheduling new work. It SHALL fence durable workers and preserve orchestration state for recovery. Late results SHALL NOT resurrect work or clear another worker's claim. Cleanup SHALL NOT wait for unrelated agent work or promise retraction of accepted input.

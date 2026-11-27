@@ -14,6 +14,93 @@ Repository: [zebrajaeger/opencode-scheduler](https://github.com/zebrajaeger/open
 <a id="english"></a>
 ## English
 
+### Orchestration development preview
+
+The event-driven extension is in development, not feature-complete. Existing timer
+configuration and the five timer tools are unchanged. Opt-in configuration validation
+and `orchestration_status` diagnostics are available, along with project-scoped
+`session_find`, `session_read`, and passive `session_send` on a supported SQLite runtime.
+`task_update` and `signal_emit` publish explicit tasks/results and custom signals.
+`job_create`, `job_list`, and `job_control` register and inspect persistent jobs.
+Automatic same-project job dispatch and queued active sends are enabled with durable
+orchestration. This remains a development preview; host qualification is currently
+Windows x64/OpenCode 2.4.2, not a general production certification.
+
+**Acceptance blocker:** durable native execution triggers are unavailable on the
+qualified CLI host. OpenCode 2.4.2 does not enable retained native event payloads;
+`log.synced` alone is not evidence of replay coverage. Native trigger registration
+returns `unsupported-capability`. Plugin-owned task/result/signal and time jobs remain
+available; unresolved admission gates remain blocked after restart without sufficient
+evidence. Mandatory native replay acceptance is **not complete**. See
+`docs/native-replay-blocker.md` before relying on restart recovery.
+
+With orchestration enabled, minimal admission evidence and the shared target gate
+for already submitted timer prompts survive reload until safely reconciled. Timer
+definitions still disappear; this safety evidence is not a restored timer. Without
+orchestration, legacy unload behavior is unchanged.
+
+An optional `orchestration` plugin-options object accepts `enabled` (default false),
+stable `instanceID`, absolute local `dataDirectory`, optional `sdk`, `limits`, and
+`retention`. For example: `{"enabled":true,"instanceID":"local","dataDirectory":"C:/scheduler-data"}`.
+All locations sharing a data directory must agree on policy. `sdk` accepts either an
+HTTP loopback `baseUrl` or `discover: true`, plus optional `tokenEnv` naming an environment
+variable, never a literal secret. `orchestration_status` verifies configured SDK access
+on demand; unsupported endpoints fail closed.
+
+Limits can only lower documented hard caps (16 conditions, 32 KiB JSON, 16 KiB text,
+64 KiB activation, 100 jobs/owner, 1000/project, 100 mailbox entries, 8 causal hops,
+20 chain activations, seven-day maximum lifetime). Retention defaults to seven days
+and 10,000 unreferenced entries. Invalid preview options report `invalid-input` without
+disabling legacy timers. Missing built-in SQLite reports `unsupported-runtime`;
+unsupported history/replay must report `unsupported-capability`, never silently fall
+back to live-only events. Runtime support alone does not advertise ready durable tools.
+See [runtime qualification](docs/development.md).
+
+For "the reviewer", the agent searches by title/project first and asks when ambiguous.
+`session_read` labels compacted context and supports stored tasks/results/mailbox views;
+history requires a verified SDK connection, otherwise returns `unsupported-capability`. Passive `session_send` stores an
+attributed message without waking the recipient or displaying a chat notification.
+Prompt mode persists a fixed-ID outbox intent and uses queued delivery. Unknown admission
+outcomes remain blocked for reconciliation and are never blindly resent. No private
+job definitions are exposed through session reads; peer contents remain untrusted data.
+
+`task_update` creates producer-owned tasks and requires an expected revision for
+updates. Publish `completed` only after relevant child/background work is finished;
+the result is immutable and later idle/error events do not retract it. Retry the
+same publication key after a lost response. A correction uses a new task/result.
+For an early critical finding, use `signal_emit` with `review.critical-finding` and
+bounded JSON data without completing the review. Publication alone does not wake
+another agent unless a matching job explicitly requests activating delivery.
+
+Job tools return immediately, even while sources are unfinished or the target is busy.
+Use `job_list` for creator-owned revisions, job state, and associated run diagnostics
+(`pending`, `submitting`, `accepted`, `delivered`, `settled`, `uncertain`, or terminal errors).
+`job_control` requires that revision; cancellation stops future admissions, not accepted work.
+ALL requires every pinned source; ANY selects one deterministic match. Business completion
+uses `scheduler.task.completed` with both producer and task IDs, never technical idle/success.
+Time conditions use an absolute `dueAt` or nominal `intervalSeconds`; recurring jobs need
+fresh edges or a time driver. For five-minute status until review completion, use repeat mode,
+a 300-second time condition, and an `until` signal group pinned to the review task.
+The agent obtains IDs through discovery; ambiguity requires clarification. Registration
+reports `automaticDispatchEnabled`; durable registration/acceptance is not execution success.
+
+The five collaboration requests use discovery rather than user-supplied technical IDs:
+
+- “Wait for the review, then update the specifications”: find the review session,
+  read its published task, and register a completed-result dependency for this session.
+- “Tell me about critical findings immediately”: register a finding-signal dependency;
+  the reviewer publishes the finding without completing its ongoing review task.
+- “Run tests once both implementations are complete”: discover both implementation
+  tasks and register ALL against their immutable completion results.
+- “Report status every five minutes until the review is complete”: create a repeating
+  time job with a 300-second interval and a task-completion stop condition.
+- “Aggregate all current reviewers”: resolve the intended reviewer set, pin those
+  tasks at registration, then collect ALL results. Later reviewers are not added silently.
+
+The agent asks only for genuine ambiguity or a missing producer completion contract;
+it must not reinterpret technical execution success as business completion. See the
+[scenario audit](docs/orchestration-acceptance-audit.md) for verified coverage and gaps.
+
 Bounded one-shot and recurring prompts for OpenCode agents, always in their original session. Ask your agent to check a container later or monitor a background test regularly without interrupting current work.
 
 [Installation](#en-installation) · [Configuration](#en-configuration) · [Examples and tools](#en-tools) · [Compatibility](#en-compatibility) · [Limits and safety](#en-limits) · [Development](#en-development)

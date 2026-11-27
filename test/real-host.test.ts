@@ -1,5 +1,5 @@
 import { spawn, execFileSync, type ChildProcess } from "node:child_process";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile, cp, symlink, readFile } from "node:fs/promises";
 import { createServer } from "node:http";
 import { tmpdir } from "node:os";
 import path from "node:path";
@@ -13,6 +13,11 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
   const project = path.join(root, "project");
   const config = path.join(root, "config", "opencode");
   await mkdir(project, { recursive: true }); await mkdir(config, { recursive: true });
+  const pluginCopy = path.join(root, "plugin-snapshot");
+  await mkdir(pluginCopy);
+  await cp(path.resolve("dist"), path.join(pluginCopy, "dist"), { recursive: true });
+  await writeFile(path.join(pluginCopy, "package.json"), await readFile(path.resolve("package.json")));
+  await symlink(path.resolve("node_modules"), path.join(pluginCopy, "node_modules"), process.platform === "win32" ? "junction" : "dir");
   let initial = true;
   let timerCalls = 0;
   let callSequence = 0;
@@ -50,7 +55,7 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
   mock.listen(0, "127.0.0.1"); await once(mock, "listening");
   const address = mock.address(); if (!address || typeof address === "string") throw new Error("No mock port");
   await writeFile(path.join(config, "opencode.json"), JSON.stringify({
-    plugins: [process.env.SCHEDULER_PLUGIN_PACKAGE ?? path.resolve(".")], model: { providerID: "scheduler-test", model: "scheduler-test" },
+    plugins: [process.env.SCHEDULER_PLUGIN_PACKAGE ?? pluginCopy], model: { providerID: "scheduler-test", model: "scheduler-test" },
     permissions: [{ action: "shell", resource: "*", effect: "allow" }],
     providers: { "scheduler-test": { package: "@opencode/ai/providers/openai-compatible", env: [],
       settings: { baseURL: `http://127.0.0.1:${address.port}/v1`, apiKey: "local-fixture-only" },
@@ -100,6 +105,12 @@ test.runIf(process.env.SCHEDULER_REAL_HOST === "1")("real plugin executes one-sh
       const current = await api(`/api/session/${sessionID}`);
       if (current.data.outcome === "failed") throw new Error(`Session failed: ${JSON.stringify(current.data)}`);
       await new Promise(resolve => setTimeout(resolve, 200));
+    }
+    if (timerCalls < 3) {
+      await writeFile(path.join(root, "failure-history.json"), JSON.stringify(await api(`/api/session/${sessionID}/message?order=asc&limit=200`), null, 2));
+      await api(`/api/session/${sessionID}/prompt`, { text: `CONTROL:${JSON.stringify([{ name: "timer_list", args: {} }])}`, delivery: "queue" });
+      await api(`/api/experimental/session/${sessionID}/wait`, {});
+      await writeFile(path.join(root, "failure-timers.json"), JSON.stringify(await api(`/api/session/${sessionID}/message?order=asc&limit=200`), null, 2));
     }
     expect(timerCalls, output.slice(-3000)).toBeGreaterThanOrEqual(3);
     const info = await api(`/api/session/${sessionID}`);

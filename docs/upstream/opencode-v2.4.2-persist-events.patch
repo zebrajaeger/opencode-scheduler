@@ -1,0 +1,81 @@
+diff --git a/packages/cli/src/commands/commands.ts b/packages/cli/src/commands/commands.ts
+--- a/packages/cli/src/commands/commands.ts
++++ b/packages/cli/src/commands/commands.ts
+@@ -622,3 +622,9 @@
+         service: Flag.Boolean("service").pipe(Flag.withDefault(false)),
+         stdio: Flag.Boolean("stdio").pipe(Flag.withDefault(false)),
++        persistEvents: Flag.Boolean("experimental-persist-events").pipe(
++          Flag.withDescription(
++            "Experimental: retain native event payloads for session log replay (increases database storage)",
++          ),
++          Flag.withDefault(false),
++        ),
+       },
+diff --git a/packages/cli/src/commands/handlers/serve.ts b/packages/cli/src/commands/handlers/serve.ts
+--- a/packages/cli/src/commands/handlers/serve.ts
++++ b/packages/cli/src/commands/handlers/serve.ts
+@@ -13,3 +13,4 @@
+       port: Option.getOrUndefined(input.port),
+       cors: input.cors.length > 0 ? input.cors : undefined,
++      persistEvents: input.persistEvents,
+     })
+diff --git a/packages/cli/src/server-process.ts b/packages/cli/src/server-process.ts
+--- a/packages/cli/src/server-process.ts
++++ b/packages/cli/src/server-process.ts
+@@ -29,2 +29,4 @@
+   readonly cors?: readonly string[]
++  /** Retain native event payloads for experimental session log replay. Off by default. */
++  readonly persistEvents?: boolean
+ }
+@@ -111,3 +113,4 @@
+           password,
+           pty: { handoff },
++          events: { persist: options.persistEvents ?? false },
+           simulation: truthy(process.env.OPENCODE_SIMULATE),
+diff --git a/packages/cli/test/persist-events.test.ts b/packages/cli/test/persist-events.test.ts
+new file mode 100644
+--- /dev/null
++++ b/packages/cli/test/persist-events.test.ts
+@@ -0,0 +1,42 @@
++import { expect, test } from "bun:test"
++import { NodeServices } from "@effect/platform-node"
++import { Effect } from "effect"
++import { CliOutput, Command } from "effect/cli"
++import { Commands } from "../src/commands/commands"
++
++test.each([
++  { args: [], persist: false },
++  { args: ["--experimental-persist-events"], persist: true },
++  { args: ["--service", "--experimental-persist-events"], persist: true },
++  { args: ["--stdio", "--experimental-persist-events"], persist: true },
++])("serve native payload retention is explicit: $args", async ({ args, persist }) => {
++  const received: boolean[] = []
++  const command = Commands.commands.serve.spec.pipe(
++    Command.withHandler((input) => Effect.sync(() => void received.push(input.persistEvents))),
++  )
++  await Effect.runPromise(Command.runWith(command, { version: "test" })(args).pipe(Effect.provide(NodeServices.layer)))
++  expect(received).toEqual([persist])
++})
++
++test("serve help identifies experimental storage cost", async () => {
++  const pages: string[] = []
++  const formatter = CliOutput.defaultFormatter({ colors: false })
++  const command = Commands.commands.serve.spec.pipe(Command.withHandler(() => Effect.void))
++  await Effect.runPromise(
++    Command.runWith(command, { version: "test" })(["--help"]).pipe(
++      Effect.provide(
++        CliOutput.layer({
++          ...formatter,
++          formatHelpDoc: (doc) => {
++            const page = formatter.formatHelpDoc(doc)
++            pages.push(page)
++            return page
++          },
++        }),
++      ),
++      Effect.provide(NodeServices.layer),
++    ),
++  )
++  expect(pages.join("\n")).toContain("--experimental-persist-events")
++  expect(pages.join("\n")).toContain("increases database storage")
++})

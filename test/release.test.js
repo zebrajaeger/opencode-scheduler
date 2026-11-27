@@ -44,6 +44,15 @@ test('release identity requires canonical matching stable package and lockfile m
   expect(() => validateMetadata(pkg, { ...lock, packages: { '': { ...lock.packages[''], name: 'other' } } })).toThrow('Lockfile');
 });
 
+test('upstream patch documentation is permitted but executable host probes cannot enter the package', () => {
+  const entries = files();
+  entries.set('docs/upstream/persist-events-proposal.md', Buffer.from('Local draft, not installed.'));
+  entries.set('docs/upstream/opencode-v2.4.2-persist-events.patch', Buffer.from('diff --git a/example b/example'));
+  expect(() => validateFiles(entries, pkg.version)).not.toThrow();
+  entries.set('docs/upstream/verify-persist-events.mjs', Buffer.from('throw new Error("probe only")'));
+  expect(() => validateFiles(entries, pkg.version)).toThrow('Forbidden package artifact');
+});
+
 test('release ancestry validates annotated tags and refuses unrelated commits or unsafe input', () => {
   const dir = mkdtempSync(join(temporary, 'scheduler-git-test-'));
   const git = args => execFileSync('git', args, { cwd: dir, stdio: 'pipe', encoding: 'utf8' }).trim();

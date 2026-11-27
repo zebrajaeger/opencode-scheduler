@@ -9,6 +9,8 @@ import { MissingSessionError } from "../src/scheduler.js";
 import { Agent } from "@opencode/schema/agent";
 import { Session } from "@opencode/schema/session";
 import { Tool } from "@opencode/schema/tool";
+import { mkdtemp } from "node:fs/promises";
+import path from "node:path";
 
 afterEach(() => vi.useRealTimers());
 
@@ -74,6 +76,69 @@ test("invalid configuration fails setup before any registration", async () => {
   const fixture = setupFixture("/project");
   await expect(setup({ ...fixture.ctx, options: { minimumSpacingSeconds: 1 } })).rejects.toThrow("minimumSpacingSeconds");
   expect(fixture.tools).toEqual([]);
+});
+
+test("invalid opt-in orchestration exposes diagnostics without breaking five legacy tools", async () => {
+  const fixture = setupFixture("/project");
+  const close = await setup({ ...fixture.ctx, options: { orchestration: { enabled: true } } });
+  expect(fixture.tools.map(tool => tool.name)).toContain("orchestration_status");
+  expect(fixture.tools.filter(tool => tool.name.startsWith("timer_"))).toHaveLength(5);
+  await close();
+});
+
+test("opt-in setup registers durable job tools without waiting for source completion or activating prompts", async () => {
+  const fixture = setupFixture("/project");
+  const dataDirectory = await mkdtemp(path.join("C:/Users/Lars.Brandt/AppData/Local/Temp/opencode", "scheduler-job-registration-"));
+  const messageID = SessionMessage.ID.create();
+  const close = await setup({ ...fixture.ctx, session: { ...fixture.ctx.session,
+    list: vi.fn(async () => ({ data: [], cursor: {} })), context: vi.fn(async () => [{ id: messageID, type: "user" as const, text: "Register", time: { created: 1 } }]),
+  }, options: { orchestration: { enabled: true, instanceID: "job-tools-test", dataDirectory } } });
+  const invocation = { sessionID: Session.ID.create(), agent: Agent.ID.make("build"), messageID,
+    id: Tool.CallID.make("job"), signal: new AbortController().signal, progress: async () => {} };
+  const execute = async (name: string, input: unknown) => JSON.parse(String((await fixture.tools.find(t => t.name === name)!.execute(input, invocation)).content));
+  try {
+    expect(fixture.tools.map(t => t.name)).toEqual(expect.arrayContaining(["job_create", "job_list", "job_control"]));
+    const created = await execute("job_create", { label: "Wait for reviewer", operator: "all", conditions: [
+      { kind: "signal", name: "review.finished", producerSessionID: "reviewer", evidence: "future" },
+    ], action: { mode: "prompt", text: "Update spec" } });
+    expect(created).toMatchObject({ ok: true, result: { automaticDispatchEnabled: true, job: { state: "waiting" } } });
+    const listed = await execute("job_list", {});
+    expect(listed.result[0]).toMatchObject({ revision: 0, body: { state: "waiting" } });
+    expect((await execute("job_control", { jobID: listed.result[0].id, operation: "cancel", expectedRevision: 0 })).ok).toBe(true);
+    expect(await execute("job_create", { label: "Native without SDK", operator: "all", conditions: [
+      { kind: "session", sessionID: invocation.sessionID, predicate: "succeeded", evidence: "future" },
+    ], action: { mode: "prompt", text: "Must not register" } })).toMatchObject({ ok: false, error: { code: "unsupported-capability" } });
+    expect((await execute("job_list", {})).result).toHaveLength(1);
+    expect(fixture.ctx.session.prompt).not.toHaveBeenCalled();
+  } finally { await close(); }
+});
+
+test("mixed unload discards timer definitions but restores durable jobs without activating them", async () => {
+  const dataDirectory = await mkdtemp(path.join("C:/Users/Lars.Brandt/AppData/Local/Temp/opencode", "scheduler-mixed-unload-"));
+  const options = { orchestration: { enabled: true, instanceID: "mixed-unload-test", dataDirectory } };
+  const invocation = { sessionID: Session.ID.create(), agent: Agent.ID.make("build"), messageID: SessionMessage.ID.create(),
+    id: Tool.CallID.make("mixed"), signal: new AbortController().signal, progress: async () => {} };
+  const open = async () => {
+    const fixture = setupFixture("/project");
+    const close = await setup({ ...fixture.ctx, session: { ...fixture.ctx.session,
+      list: vi.fn(async () => ({ data: [], cursor: {} })), context: vi.fn(async () => [{ id: invocation.messageID, type: "user" as const, text: "Register", time: { created: 1 } }]),
+    }, options });
+    const execute = async (name: string, input: unknown) => JSON.parse(String((await fixture.tools.find(t => t.name === name)!.execute(input, invocation)).content));
+    return { fixture, close, execute };
+  };
+  const first = await open();
+  try {
+    await first.execute("timer_start", { mode: "once", delaySeconds: 30, prompt: "Check" });
+    await first.execute("job_create", { label: "Durable wait", operator: "all", conditions: [
+      { kind: "signal", name: "review.done", evidence: "future" },
+    ], action: { mode: "prompt", text: "Update spec" } });
+  } finally { await first.close(); }
+  const second = await open();
+  try {
+    expect((await second.execute("timer_list", {})).result).toEqual([]);
+    expect((await second.execute("job_list", {})).result).toHaveLength(1);
+    expect(second.fixture.ctx.session.prompt).not.toHaveBeenCalled();
+  } finally { await second.close(); }
 });
 
 test.each([
