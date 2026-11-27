@@ -7,7 +7,7 @@ const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
 const release = readFileSync('.github/workflows/release.yml', 'utf8');
 
 test('only the stable tag workflow has publishing privileges or commands', () => {
-  expect(ci).toContain('pull_request:'); expect(ci).toContain('branches: [master]');
+  expect(ci).toContain('pull_request:'); expect(ci).toContain('branches: [main]');
   expect(ci).not.toMatch(/id-token:|npm publish|pull_request_target/);
   expect(release).toContain("tags: ['v*']");
   expect(release).not.toMatch(/pull_request|workflow_dispatch|branches:/);
@@ -22,7 +22,7 @@ test('release validates tag before install and passes only the same tested archi
   expect(release.indexOf('scripts/release.mjs identity')).toBeLessThan(release.indexOf('npm ci'));
   expect(release).toContain('RELEASE_TAG: ${{ github.ref_name }}');
   expect(release).not.toMatch(/run:.*\$\{\{\s*github\./);
-  expect(release).toContain('refs/heads/master:refs/remotes/origin/master');
+  expect(release).toContain('refs/heads/main:refs/remotes/origin/main');
   expect(release).toContain('cancel-in-progress: false');
   expect(release).toContain('group: npm-release-${{ github.ref }}');
   expect(release).toContain('include-hidden-files: true');

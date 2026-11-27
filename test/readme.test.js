@@ -3,8 +3,8 @@ import { readFileSync, existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { createHash } from 'node:crypto';
 
-const readme = readFileSync('README.md', 'utf8');
-const german = readFileSync('README.de.md', 'utf8');
+const readme = readFileSync('README.md', 'utf8').replace(/\r\n/g, '\n');
+const german = readFileSync('README.de.md', 'utf8').replace(/\r\n/g, '\n');
 const english = readme;
 const pkg = JSON.parse(readFileSync('package.json', 'utf8'));
 
@@ -63,7 +63,7 @@ test('local links exist and German advanced documentation is labelled English', 
   for (const m of german.matchAll(/\[([^\]]+)\]\((docs\/[^)]+\.md)\)/g)) expect(m[1]).toContain('Englisch');
 });
 
-test('four truthful badges link to npm master CI license and engine metadata', () => {
+test('four truthful badges link to npm main CI license and engine metadata', () => {
   for (const text of [german, english]) {
   const badges = [...text.matchAll(/\[!\[([^\]]+)\]\(([^)]+)\)\]\(([^)]+)\)/g)];
   expect(badges).toHaveLength(4);
@@ -71,8 +71,8 @@ test('four truthful badges link to npm master CI license and engine metadata', (
     `https://www.npmjs.com/package/${pkg.name}`,
     'https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml', 'LICENSE', 'package.json',
   ]);
-  expect(badges[1][2]).toContain('ci.yml/badge.svg?branch=master');
-  expect(readFileSync('.github/workflows/ci.yml', 'utf8')).toContain('branches: [master]');
+  expect(badges[1][2]).toContain('ci.yml/badge.svg?branch=main');
+  expect(readFileSync('.github/workflows/ci.yml', 'utf8')).toContain('branches: [main]');
   expect(pkg.license).toBe('MIT'); expect(pkg.engines.node).toBe('>=22');
   for (const m of badges.filter((_, i) => i !== 1)) expect(m[2]).toContain(encodeURIComponent(pkg.name));
   for (const m of badges) expect(m[1].length).toBeGreaterThan(3);

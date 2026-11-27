@@ -49,7 +49,7 @@ test('release ancestry validates annotated tags and refuses unrelated commits or
   const git = args => execFileSync('git', args, { cwd: dir, stdio: 'pipe', encoding: 'utf8' }).trim();
   git(['init', '--quiet']); git(['config', 'user.name', 'Fixture']); git(['config', 'user.email', 'fixture@example.invalid']);
   git(['commit', '--allow-empty', '-m', 'base']);
-  git(['update-ref', 'refs/remotes/origin/master', 'HEAD']);
+  git(['update-ref', 'refs/remotes/origin/main', 'HEAD']);
   git(['tag', '-a', 'v0.1.0', '-m', 'release']);
   expect(validateGit('v0.1.0', dir)).toBe(git(['rev-parse', 'HEAD']));
   git(['commit', '--allow-empty', '-m', 'unmerged']); git(['tag', 'v0.2.0']);

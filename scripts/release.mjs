@@ -40,7 +40,7 @@ export function validateGit(tag, cwd = process.cwd()) {
   const git = args => execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
   const commit = git(['rev-parse', '--verify', `refs/tags/${tag}^{commit}`]);
   assert(commit === git(['rev-parse', 'HEAD']), 'Checkout does not match tagged commit');
-  git(['merge-base', '--is-ancestor', commit, 'refs/remotes/origin/master']);
+  git(['merge-base', '--is-ancestor', commit, 'refs/remotes/origin/main']);
   return commit;
 }
 

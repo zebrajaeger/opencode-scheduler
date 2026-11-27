@@ -3,7 +3,7 @@
 ![OpenCode Scheduler – scheduled and recurring tasks for OpenCode](docs/banner.png)
 
 [![npm version](https://img.shields.io/npm/v/%40zebrajaeger%2Fopencode-scheduler)](https://www.npmjs.com/package/@zebrajaeger/opencode-scheduler)
-[![CI on master](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml/badge.svg?branch=master)](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml)
+[![CI on main](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/zebrajaeger/opencode-scheduler/actions/workflows/ci.yml)
 [![MIT license](https://img.shields.io/npm/l/%40zebrajaeger%2Fopencode-scheduler)](LICENSE)
 [![Declared Node engine](https://img.shields.io/node/v/%40zebrajaeger%2Fopencode-scheduler)](package.json)
 
